@@ -56,8 +56,8 @@ export default function ModalAnularRegistro({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/75 px-4 backdrop-blur-sm">
-      <div className="w-full max-w-lg rounded-2xl border border-rose-700/50 bg-slate-900 shadow-2xl shadow-slate-950/60">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/75 px-3 py-4 backdrop-blur-sm">
+      <div className="w-[calc(100%-1rem)] max-w-lg max-h-[88vh] overflow-y-auto rounded-2xl border border-rose-700/50 bg-slate-900 shadow-2xl shadow-slate-950/60">
         <div className="flex items-center justify-between border-b border-slate-700 px-5 py-4">
           <div>
             <p className="text-xs font-medium uppercase tracking-[0.2em] text-rose-300">Acción sensible</p>
@@ -100,7 +100,7 @@ export default function ModalAnularRegistro({
             </div>
           )}
 
-          <div className="flex items-center justify-end gap-3 pt-2">
+          <div className="sticky bottom-0 z-10 -mx-1 mt-2 flex items-center justify-end gap-3 border-t border-slate-800 bg-slate-900 pt-3">
             <button
               type="button"
               onClick={onClose}

@@ -357,7 +357,7 @@ export default function ModalNuevaVenta({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 px-3 py-4 backdrop-blur-sm">
-      <div className="relative w-full max-w-5xl rounded-2xl border border-slate-700 bg-slate-900 shadow-2xl shadow-slate-950/60">
+      <div className="relative w-[calc(100%-1rem)] max-w-5xl max-h-[88vh] overflow-y-auto rounded-2xl border border-slate-700 bg-slate-900 shadow-2xl shadow-slate-950/60">
         <div className="flex items-center justify-between border-b border-slate-700 px-5 py-4">
           <div>
             <p className="text-xs font-medium uppercase tracking-[0.2em] text-orange-300">Lote masivo</p>
@@ -464,7 +464,7 @@ export default function ModalNuevaVenta({
             </div>
           )}
 
-          <div className="flex items-center justify-end gap-3 pt-2">
+          <div className="sticky bottom-0 z-10 -mx-1 mt-2 flex items-center justify-end gap-3 border-t border-slate-800 bg-slate-900 pt-3">
             <button
               type="button"
               onClick={handleClose}

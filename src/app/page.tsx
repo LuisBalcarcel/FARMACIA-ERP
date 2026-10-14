@@ -10,6 +10,7 @@ import {
   FileSpreadsheet,
   FileText,
   Lock,
+  Menu,
   Plus,
   Receipt,
   Search,
@@ -154,6 +155,7 @@ export default function Home() {
   const [modalSucursalAbierto, setModalSucursalAbierto] = useState(false);
   const [modalDepositoAbierto, setModalDepositoAbierto] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [itemAAnular, setItemAAnular] = useState<ItemAAnular | null>(null);
   const [crmAbierto, setCrmAbierto] = useState(false);
   const [selectedFarmaciaId, setSelectedFarmaciaId] = useState<string>('');
@@ -881,8 +883,16 @@ export default function Home() {
     <main className="min-h-screen bg-slate-950 text-slate-100">
       <Sidebar
         activeSection={activeSection}
-        onSelectSection={handleSidebarSection}
-        onQuickAction={handleQuickAction}
+        isOpen={isSidebarOpen}
+        onClose={() => setIsSidebarOpen(false)}
+        onSelectSection={(section) => {
+          handleSidebarSection(section);
+          setIsSidebarOpen(false);
+        }}
+        onQuickAction={(action) => {
+          handleQuickAction(action);
+          setIsSidebarOpen(false);
+        }}
         onExportExcel={() => {
           void handleExportarExcel();
         }}
@@ -891,12 +901,23 @@ export default function Home() {
         }}
       />
 
-      <div className="pl-64">
+      <div className="w-full min-h-screen pl-0 lg:pl-64">
         <header className="border-b border-slate-800 bg-slate-950/80 p-4 shadow-xl shadow-slate-950/20 backdrop-blur-sm sm:p-6">
-          <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
-            <div>
-              <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-orange-300">ERP farmacéutico</p>
-              <h1 className="mt-2 text-2xl font-semibold text-white sm:text-3xl">{selectedSectionTitle}</h1>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between xl:flex-row">
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => setIsSidebarOpen((open) => !open)}
+                className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-700 bg-slate-900 text-slate-200 shadow-lg shadow-slate-950/40 transition hover:border-orange-400 hover:text-orange-300 lg:hidden"
+                aria-label="Abrir menú lateral"
+              >
+                <Menu className="h-5 w-5" />
+              </button>
+
+              <div>
+                <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-orange-300">ERP farmacéutico</p>
+                <h1 className="mt-2 text-2xl font-semibold text-white sm:text-3xl">{selectedSectionTitle}</h1>
+              </div>
             </div>
 
             <div className="flex flex-col gap-3 xl:flex-row xl:items-center">
@@ -916,7 +937,7 @@ export default function Home() {
                 </select>
               </div>
 
-              <div className="flex flex-wrap items-center gap-2 rounded-xl border border-slate-700 bg-slate-800 p-2">
+              <div className="grid grid-cols-2 gap-2 rounded-xl border border-slate-700 bg-slate-800 p-2 sm:flex sm:flex-wrap sm:items-center">
                 <label className="flex items-center gap-2 text-xs text-slate-300">
                   <span>Desde</span>
                   <input
@@ -926,7 +947,7 @@ export default function Home() {
                       setFechaDesde(event.target.value);
                       setActiveDatePreset('personalizado');
                     }}
-                    className="rounded-lg border border-slate-600 bg-slate-900 px-2 py-1.5 text-xs text-white outline-none transition focus:border-blue-400"
+                    className="w-full rounded-lg border border-slate-600 bg-slate-900 px-2 py-1.5 text-xs text-white outline-none transition focus:border-blue-400"
                   />
                 </label>
                 <label className="flex items-center gap-2 text-xs text-slate-300">
@@ -938,12 +959,12 @@ export default function Home() {
                       setFechaHasta(event.target.value);
                       setActiveDatePreset('personalizado');
                     }}
-                    className="rounded-lg border border-slate-600 bg-slate-900 px-2 py-1.5 text-xs text-white outline-none transition focus:border-blue-400"
+                    className="w-full rounded-lg border border-slate-600 bg-slate-900 px-2 py-1.5 text-xs text-white outline-none transition focus:border-blue-400"
                   />
                 </label>
               </div>
 
-              <div className="flex flex-wrap items-center gap-2">
+              <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center">
                 {[
                   { key: 'hoy', label: 'Hoy' },
                   { key: 'semana', label: 'Semana' },
@@ -996,7 +1017,7 @@ export default function Home() {
           </div>
         )}
 
-        <section className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+        <section className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-5">
           {[
             { label: 'Ventas activas', value: formatCurrency(totalVentas), accent: 'blue', icon: DollarSign },
             { label: 'Inversión total', value: formatCurrency(totalInversion), accent: 'blue', icon: Receipt },
@@ -1067,7 +1088,7 @@ export default function Home() {
         <section className="mt-6 overflow-hidden rounded-2xl border border-slate-800 bg-slate-900/60 shadow-xl shadow-slate-950/30 backdrop-blur">
           <div className="border-b border-slate-800 bg-slate-950/60 p-3 sm:p-4">
             <div className="mb-6 flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
-              <div className="inline-flex max-w-full items-center gap-1.5 overflow-x-auto rounded-xl border border-slate-800 bg-slate-900/90 p-1.5">
+              <div className="inline-flex max-w-full items-center gap-1.5 overflow-x-auto rounded-xl border border-slate-800 bg-slate-900/90 p-1.5 no-scrollbar py-1">
                 {[
                   { key: 'ventas', label: 'Ventas y Recaudaciones', count: filteredVentas.length },
                   { key: 'gastos', label: 'Gastos Operativos', count: filteredGastos.length },
@@ -1142,8 +1163,9 @@ export default function Home() {
 
           <div className="overflow-x-auto">
             {activeTable === 'ventas' ? (
-              <table className="min-w-[1100px] w-full text-left text-sm">
-                <thead className="bg-slate-950/60 text-slate-300">
+              <div className="w-full overflow-x-auto rounded-xl border border-slate-800 [-webkit-overflow-scrolling:touch]">
+                <table className="min-w-[1100px] w-full text-left text-sm">
+                  <thead className="bg-slate-950/60 text-slate-300">
                   <tr>
                     <th className="px-4 py-3 font-medium whitespace-nowrap">Período / Fecha</th>
                     <th className="px-4 py-3 font-medium whitespace-nowrap">Sucursal</th>
@@ -1221,11 +1243,13 @@ export default function Home() {
                       </tr>
                     );
                   })}
-                </tbody>
-              </table>
+                  </tbody>
+                </table>
+              </div>
             ) : activeTable === 'gastos' ? (
-              <table className="min-w-[1100px] w-full text-left text-sm">
-                <thead className="bg-slate-950/60 text-slate-300">
+              <div className="w-full overflow-x-auto rounded-xl border border-slate-800 [-webkit-overflow-scrolling:touch]">
+                <table className="min-w-[1100px] w-full text-left text-sm">
+                  <thead className="bg-slate-950/60 text-slate-300">
                   <tr>
                     <th className="px-4 py-3 font-medium whitespace-nowrap">Fecha</th>
                     <th className="px-4 py-3 font-medium whitespace-nowrap">Categoría</th>
@@ -1299,8 +1323,9 @@ export default function Home() {
                       </tr>
                     );
                   })}
-                </tbody>
-              </table>
+                  </tbody>
+                </table>
+              </div>
             ) : activeTable === 'nomina' ? (
               <div className="p-4">
                 <div className="mb-4 grid gap-4 md:grid-cols-4">
@@ -1322,41 +1347,43 @@ export default function Home() {
                   </div>
                 </div>
 
-                <table className="min-w-[1200px] w-full text-left text-sm">
-                  <thead className="bg-slate-950/60 text-slate-300">
-                    <tr>
-                      <th className="px-4 py-3 font-medium whitespace-nowrap">Colaborador</th>
-                      <th className="px-4 py-3 font-medium whitespace-nowrap">Sucursal</th>
-                      <th className="px-4 py-3 font-medium whitespace-nowrap">Área</th>
-                      <th className="px-4 py-3 font-medium text-right whitespace-nowrap">Venta</th>
-                      <th className="px-4 py-3 font-medium text-right whitespace-nowrap">Salario</th>
-                      <th className="px-4 py-3 font-medium text-right whitespace-nowrap">% Meta</th>
-                      <th className="px-4 py-3 font-medium text-right whitespace-nowrap">Comisión</th>
-                      <th className="px-4 py-3 font-medium text-right whitespace-nowrap">Bono Meta</th>
-                      <th className="px-4 py-3 font-medium text-right whitespace-nowrap">IGSS</th>
-                      <th className="px-4 py-3 font-medium text-right whitespace-nowrap">Neto</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {nominaRows.map((row) => (
-                      <tr key={`${row.colaborador}-${row.sucursal}`} className="border-t border-slate-800 bg-slate-900/40 align-top">
-                        <td className="px-4 py-3 text-slate-200">
-                          <div className="font-medium text-white">{row.colaborador}</div>
-                          <div className="text-[11px] text-slate-400">{row.puesto}</div>
-                        </td>
-                        <td className="px-4 py-3 text-slate-300">{row.sucursal}</td>
-                        <td className="px-4 py-3 text-slate-300">{row.area}</td>
-                        <td className="px-4 py-3 text-right font-mono text-emerald-400">{formatCurrency(row.ventaRegistrada)}</td>
-                        <td className="px-4 py-3 text-right font-mono text-slate-200">{formatCurrency(row.salarioBase)}</td>
-                        <td className="px-4 py-3 text-right font-mono text-cyan-300">{`${(row.porcentajeMeta || 0).toFixed(1)}%`}</td>
-                        <td className="px-4 py-3 text-right font-mono text-emerald-300">{formatCurrency(row.comisionGanada)}</td>
-                        <td className="px-4 py-3 text-right font-mono text-violet-300">{formatCurrency(row.bonoMeta)}</td>
-                        <td className="px-4 py-3 text-right font-mono text-amber-300">{formatCurrency(row.retencionIgss)}</td>
-                        <td className="px-4 py-3 text-right font-mono text-white font-semibold">{formatCurrency(row.liquidoPagar)}</td>
+                <div className="w-full overflow-x-auto rounded-xl border border-slate-800 [-webkit-overflow-scrolling:touch]">
+                  <table className="min-w-[1200px] w-full text-left text-sm">
+                    <thead className="bg-slate-950/60 text-slate-300">
+                      <tr>
+                        <th className="px-4 py-3 font-medium whitespace-nowrap">Colaborador</th>
+                        <th className="px-4 py-3 font-medium whitespace-nowrap">Sucursal</th>
+                        <th className="px-4 py-3 font-medium whitespace-nowrap">Área</th>
+                        <th className="px-4 py-3 font-medium text-right whitespace-nowrap">Venta</th>
+                        <th className="px-4 py-3 font-medium text-right whitespace-nowrap">Salario</th>
+                        <th className="px-4 py-3 font-medium text-right whitespace-nowrap">% Meta</th>
+                        <th className="px-4 py-3 font-medium text-right whitespace-nowrap">Comisión</th>
+                        <th className="px-4 py-3 font-medium text-right whitespace-nowrap">Bono Meta</th>
+                        <th className="px-4 py-3 font-medium text-right whitespace-nowrap">IGSS</th>
+                        <th className="px-4 py-3 font-medium text-right whitespace-nowrap">Neto</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody>
+                      {nominaRows.map((row) => (
+                        <tr key={`${row.colaborador}-${row.sucursal}`} className="border-t border-slate-800 bg-slate-900/40 align-top">
+                          <td className="px-4 py-3 text-slate-200">
+                            <div className="font-medium text-white">{row.colaborador}</div>
+                            <div className="text-[11px] text-slate-400">{row.puesto}</div>
+                          </td>
+                          <td className="px-4 py-3 text-slate-300">{row.sucursal}</td>
+                          <td className="px-4 py-3 text-slate-300">{row.area}</td>
+                          <td className="px-4 py-3 text-right font-mono text-emerald-400">{formatCurrency(row.ventaRegistrada)}</td>
+                          <td className="px-4 py-3 text-right font-mono text-slate-200">{formatCurrency(row.salarioBase)}</td>
+                          <td className="px-4 py-3 text-right font-mono text-cyan-300">{`${(row.porcentajeMeta || 0).toFixed(1)}%`}</td>
+                          <td className="px-4 py-3 text-right font-mono text-emerald-300">{formatCurrency(row.comisionGanada)}</td>
+                          <td className="px-4 py-3 text-right font-mono text-violet-300">{formatCurrency(row.bonoMeta)}</td>
+                          <td className="px-4 py-3 text-right font-mono text-amber-300">{formatCurrency(row.retencionIgss)}</td>
+                          <td className="px-4 py-3 text-right font-mono text-white font-semibold">{formatCurrency(row.liquidoPagar)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             ) : (
               <div className="p-4">
@@ -1377,65 +1404,67 @@ export default function Home() {
                   </div>
                 </div>
 
-                <table className="min-w-[1200px] w-full text-left text-sm">
-                  <thead className="bg-slate-950/60 text-slate-300">
-                    <tr>
-                      <th className="px-4 py-3 font-medium whitespace-nowrap">Farmacia / Sucursal</th>
-                      <th className="px-4 py-3 font-medium whitespace-nowrap">Período de Corte</th>
-                      <th className="px-4 py-3 font-medium text-right whitespace-nowrap">Total Recaudado / Ventas Sistema</th>
-                      <th className="px-4 py-3 font-medium text-right whitespace-nowrap">Total Depositado en Banco</th>
-                      <th className="px-4 py-3 font-medium text-right whitespace-nowrap">Diferencia</th>
-                      <th className="px-4 py-3 font-medium whitespace-nowrap">Detalle de Boletas</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {conciliacionRows.map((row) => {
-                      const diferencia = row.diferencia;
-                      const badgeClass =
-                        diferencia === 0
-                          ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-200'
-                          : diferencia < 0
-                            ? 'border-rose-500/40 bg-rose-500/10 text-rose-200'
-                            : 'border-cyan-500/40 bg-cyan-500/10 text-cyan-200';
+                <div className="w-full overflow-x-auto rounded-xl border border-slate-800 [-webkit-overflow-scrolling:touch]">
+                  <table className="min-w-[1200px] w-full text-left text-sm">
+                    <thead className="bg-slate-950/60 text-slate-300">
+                      <tr>
+                        <th className="px-4 py-3 font-medium whitespace-nowrap">Farmacia / Sucursal</th>
+                        <th className="px-4 py-3 font-medium whitespace-nowrap">Período de Corte</th>
+                        <th className="px-4 py-3 font-medium text-right whitespace-nowrap">Total Recaudado / Ventas Sistema</th>
+                        <th className="px-4 py-3 font-medium text-right whitespace-nowrap">Total Depositado en Banco</th>
+                        <th className="px-4 py-3 font-medium text-right whitespace-nowrap">Diferencia</th>
+                        <th className="px-4 py-3 font-medium whitespace-nowrap">Detalle de Boletas</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {conciliacionRows.map((row) => {
+                        const diferencia = row.diferencia;
+                        const badgeClass =
+                          diferencia === 0
+                            ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-200'
+                            : diferencia < 0
+                              ? 'border-rose-500/40 bg-rose-500/10 text-rose-200'
+                              : 'border-cyan-500/40 bg-cyan-500/10 text-cyan-200';
 
-                      const badgeLabel =
-                        diferencia === 0
-                          ? 'CUADRADO PERFECTO (Q 0.00)'
-                          : diferencia < 0
-                            ? `FALTANTE (-Q ${Math.abs(diferencia).toLocaleString('es-GT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })})`
-                            : `SOBRANTE (+Q ${Math.abs(diferencia).toLocaleString('es-GT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })})`;
+                        const badgeLabel =
+                          diferencia === 0
+                            ? 'CUADRADO PERFECTO (Q 0.00)'
+                            : diferencia < 0
+                              ? `FALTANTE (-Q ${Math.abs(diferencia).toLocaleString('es-GT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })})`
+                              : `SOBRANTE (+Q ${Math.abs(diferencia).toLocaleString('es-GT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })})`;
 
-                      return (
-                        <tr key={row.sucursalId} className="border-t border-slate-800 bg-slate-900/40 align-top">
-                          <td className="px-4 py-3 text-slate-200">
-                            <div className="font-medium text-white">{row.sucursal}</div>
-                          </td>
-                          <td className="px-4 py-3 text-slate-300">{row.periodo}</td>
-                          <td className="px-4 py-3 text-right font-mono text-emerald-300">{formatCurrency(row.totalRecaudado)}</td>
-                          <td className="px-4 py-3 text-right font-mono text-cyan-300">{formatCurrency(row.totalDepositado)}</td>
-                          <td className="px-4 py-3 text-right font-mono text-slate-100">
-                            <span className={`inline-flex rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] ${badgeClass}`}>
-                              {badgeLabel}
-                            </span>
-                          </td>
-                          <td className="px-4 py-3 text-slate-300">
-                            {row.detalle.length > 0 ? (
-                              <div className="space-y-1">
-                                {row.detalle.slice(0, 3).map((detalle, index) => (
-                                  <div key={`${detalle.banco}-${detalle.noBoleta}-${index}`} className="text-xs">
-                                    {detalle.banco} • {detalle.noBoleta}
-                                  </div>
-                                ))}
-                              </div>
-                            ) : (
-                              <span className="text-xs text-slate-500">Sin boletas registradas</span>
-                            )}
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
+                        return (
+                          <tr key={row.sucursalId} className="border-t border-slate-800 bg-slate-900/40 align-top">
+                            <td className="px-4 py-3 text-slate-200">
+                              <div className="font-medium text-white">{row.sucursal}</div>
+                            </td>
+                            <td className="px-4 py-3 text-slate-300">{row.periodo}</td>
+                            <td className="px-4 py-3 text-right font-mono text-emerald-300">{formatCurrency(row.totalRecaudado)}</td>
+                            <td className="px-4 py-3 text-right font-mono text-cyan-300">{formatCurrency(row.totalDepositado)}</td>
+                            <td className="px-4 py-3 text-right font-mono text-slate-100">
+                              <span className={`inline-flex rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] ${badgeClass}`}>
+                                {badgeLabel}
+                              </span>
+                            </td>
+                            <td className="px-4 py-3 text-slate-300">
+                              {row.detalle.length > 0 ? (
+                                <div className="space-y-1">
+                                  {row.detalle.slice(0, 3).map((detalle, index) => (
+                                    <div key={`${detalle.banco}-${detalle.noBoleta}-${index}`} className="text-xs">
+                                      {detalle.banco} • {detalle.noBoleta}
+                                    </div>
+                                  ))}
+                                </div>
+                              ) : (
+                                <span className="text-xs text-slate-500">Sin boletas registradas</span>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             )}
           </div>
