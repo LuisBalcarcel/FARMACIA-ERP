@@ -3,6 +3,7 @@
 import {
   FileSpreadsheet,
   FileText,
+  Landmark,
   LayoutGrid,
   Pill,
   Plus,
@@ -12,7 +13,7 @@ import {
   X,
 } from 'lucide-react';
 
-export type SectionKey = 'dashboard' | 'crm' | 'nomina' | 'conciliacion' | 'redistribucion';
+export type SectionKey = 'dashboard' | 'crm' | 'nomina' | 'conciliacion' | 'redistribucion' | 'cierreMensual';
 
 type SidebarProps = {
   activeSection: SectionKey;
@@ -30,6 +31,7 @@ const navigationItems: Array<{ key: SectionKey; label: string; description: stri
   { key: 'nomina', label: 'Nómina y Comisiones', description: 'Salarios y metas', icon: Receipt },
   { key: 'conciliacion', label: 'Conciliación Bancaria', description: 'Boletas y cuadres', icon: FileText },
   { key: 'redistribucion', label: 'Reporte de Redistribución', description: 'Utilidades y cierre financiero', icon: FileText },
+  { key: 'cierreMensual', label: 'Cierre Mensual y Ahorro', description: 'Bonificaciones y ahorro', icon: Landmark },
 ];
 
 export default function Sidebar({

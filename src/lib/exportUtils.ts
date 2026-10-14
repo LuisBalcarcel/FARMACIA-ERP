@@ -84,6 +84,24 @@ export type RedistribucionExportData = {
   socios: Array<{ nombre: string; monto: number; porcentaje: number }>;
 };
 
+export type CierreMensualExportData = {
+  fechaDesde: string;
+  fechaHasta: string;
+  totalVentas: number;
+  presupuestoParaGastos: number;
+  totalSalarios: number;
+  totalGastosOperativos: number;
+  totalGastosMes: number;
+  margenRestante: number;
+  directivos: Array<{ nombre: string; monto: number }>;
+  totalPorcentajes: number;
+  ahorroMes: number;
+  ahorroHistoricoAnterior: number;
+  sumaTotalAhorroAcumulado: number;
+  salarios: Array<{ concepto: string; total: number }>;
+  gastosOperativos: Array<{ concepto: string; total: number }>;
+};
+
 const formatCurrency = (value: number): string =>
   new Intl.NumberFormat('es-GT', {
     style: 'currency',
@@ -368,6 +386,120 @@ export const exportarReporteRedistribucionPDF = (data: RedistribucionExportData)
   });
 
   doc.save(`Reporte_Redistribucion_${getCurrentDateStamp()}.pdf`);
+};
+
+export const exportarCierreMensualExcel = (data: CierreMensualExportData): void => {
+  const workbook = XLSX.utils.book_new();
+
+  const summaryRows = [
+    ['Cierre Mensual de Utilidades, Bonificaciones y Fondos de Ahorro'],
+    ['Ventas del', `${data.fechaDesde} al ${data.fechaHasta}`],
+    ['Total de ventas', formatCurrency(data.totalVentas)],
+    ['Presupuesto para gastos', formatCurrency(data.presupuestoParaGastos)],
+    ['Total gastos del mes', formatCurrency(data.totalGastosMes)],
+    ['Margen restante', formatCurrency(data.margenRestante)],
+    ['Total porcentajes', formatCurrency(data.totalPorcentajes)],
+    ['Ahorro del mes', formatCurrency(data.ahorroMes)],
+    ['Ahorro histórico anterior', formatCurrency(data.ahorroHistoricoAnterior)],
+    ['Suma total ahorro acumulado', formatCurrency(data.sumaTotalAhorroAcumulado)],
+  ];
+
+  const summarySheet = XLSX.utils.aoa_to_sheet(summaryRows);
+  applyBlueHeaderStyle(summarySheet, 0, 0, 1);
+  summarySheet['!cols'] = [{ wch: 32 }, { wch: 24 }];
+  XLSX.utils.book_append_sheet(workbook, summarySheet, 'Cierre Mensual');
+
+  const salarioRows = data.salarios.map((item) => ({ Concepto: item.concepto, Monto: formatCurrency(item.total) }));
+  const salarioSheet = XLSX.utils.json_to_sheet(salarioRows, { header: ['Concepto', 'Monto'] });
+  if (salarioRows.length > 0) applyBlueHeaderStyle(salarioSheet, 0, 0, 1);
+  salarioSheet['!cols'] = [{ wch: 28 }, { wch: 18 }];
+  XLSX.utils.book_append_sheet(workbook, salarioSheet, 'Salarios');
+
+  const gastoRows = data.gastosOperativos.map((item) => ({ Concepto: item.concepto, Monto: formatCurrency(item.total) }));
+  const gastoSheet = XLSX.utils.json_to_sheet(gastoRows, { header: ['Concepto', 'Monto'] });
+  if (gastoRows.length > 0) applyBlueHeaderStyle(gastoSheet, 0, 0, 1);
+  gastoSheet['!cols'] = [{ wch: 28 }, { wch: 18 }];
+  XLSX.utils.book_append_sheet(workbook, gastoSheet, 'Gastos Operativos');
+
+  const directivoRows = data.directivos.map((item) => ({ Socio: item.nombre, Monto: formatCurrency(item.monto) }));
+  const directivoSheet = XLSX.utils.json_to_sheet(directivoRows, { header: ['Socio', 'Monto'] });
+  if (directivoRows.length > 0) applyBlueHeaderStyle(directivoSheet, 0, 0, 1);
+  directivoSheet['!cols'] = [{ wch: 20 }, { wch: 18 }];
+  XLSX.utils.book_append_sheet(workbook, directivoSheet, 'Bonificaciones');
+
+  const filename = `Cierre_Mensual_${getCurrentDateStamp()}.xlsx`;
+  XLSX.writeFile(workbook, filename);
+};
+
+export const exportarCierreMensualPDF = (data: CierreMensualExportData): void => {
+  const doc = new jsPDF('p', 'mm', 'a4');
+  const pageWidth = doc.internal.pageSize.getWidth();
+
+  doc.setFillColor(15, 23, 42);
+  doc.rect(0, 0, pageWidth, 26, 'F');
+  doc.setTextColor(255, 255, 255);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(15);
+  doc.text('CIERRE MENSUAL DE UTILIDADES', pageWidth / 2, 16, { align: 'center' });
+
+  doc.setTextColor(15, 23, 42);
+  doc.setFontSize(10);
+  doc.text(`Periodo: ${data.fechaDesde} al ${data.fechaHasta}`, 14, 38);
+
+  const summaryRows: [string, string][] = [
+    ['Total de ventas', formatCurrency(data.totalVentas)],
+    ['Presupuesto para gastos', formatCurrency(data.presupuestoParaGastos)],
+    ['Total gastos del mes', formatCurrency(data.totalGastosMes)],
+    ['Margen restante', formatCurrency(data.margenRestante)],
+    ['Total porcentajes', formatCurrency(data.totalPorcentajes)],
+    ['Ahorro del mes', formatCurrency(data.ahorroMes)],
+    ['Ahorro histórico anterior', formatCurrency(data.ahorroHistoricoAnterior)],
+    ['Suma total ahorro acumulado', formatCurrency(data.sumaTotalAhorroAcumulado)],
+  ];
+
+  autoTable(doc, {
+    startY: 46,
+    head: [['Concepto', 'Valor']],
+    body: summaryRows,
+    theme: 'grid',
+    styles: { fontSize: 8, cellPadding: 2 },
+    headStyles: { fillColor: [30, 64, 175], textColor: [255, 255, 255], fontStyle: 'bold' },
+  });
+
+  const y1 = (doc as jsPDF & { lastAutoTable?: { finalY?: number } }).lastAutoTable?.finalY ?? 46;
+
+  autoTable(doc, {
+    startY: y1 + 10,
+    head: [['Salario', 'Monto']],
+    body: data.salarios.map((item) => [item.concepto, formatCurrency(item.total)]),
+    theme: 'grid',
+    styles: { fontSize: 8, cellPadding: 2 },
+    headStyles: { fillColor: [249, 115, 22], textColor: [255, 255, 255], fontStyle: 'bold' },
+  });
+
+  const y2 = (doc as jsPDF & { lastAutoTable?: { finalY?: number } }).lastAutoTable?.finalY ?? y1;
+
+  autoTable(doc, {
+    startY: y2 + 10,
+    head: [['Gasto operativo', 'Monto']],
+    body: data.gastosOperativos.map((item) => [item.concepto, formatCurrency(item.total)]),
+    theme: 'grid',
+    styles: { fontSize: 8, cellPadding: 2 },
+    headStyles: { fillColor: [15, 118, 110], textColor: [255, 255, 255], fontStyle: 'bold' },
+  });
+
+  const y3 = (doc as jsPDF & { lastAutoTable?: { finalY?: number } }).lastAutoTable?.finalY ?? y2;
+
+  autoTable(doc, {
+    startY: y3 + 10,
+    head: [['Socio', 'Monto']],
+    body: data.directivos.map((item) => [item.nombre, formatCurrency(item.monto)]),
+    theme: 'grid',
+    styles: { fontSize: 8, cellPadding: 2 },
+    headStyles: { fillColor: [30, 64, 175], textColor: [255, 255, 255], fontStyle: 'bold' },
+  });
+
+  doc.save(`Cierre_Mensual_${getCurrentDateStamp()}.pdf`);
 };
 
 const addSummaryTable = (doc: jsPDF, rows: [string, string][], startY: number) => {

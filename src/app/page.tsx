@@ -26,6 +26,7 @@ import ModalNuevaVenta from '@/components/ModalNuevaVenta';
 import ModalNuevoGasto from '@/components/ModalNuevoGasto';
 import ModalRegistrarDeposito from '@/components/ModalRegistrarDeposito';
 import PanelLateralCRM from '@/components/PanelLateralCRM';
+import ReporteCierreMensual from '@/components/ReporteCierreMensual';
 import ReporteRedistribucion from '@/components/ReporteRedistribucion';
 import Sidebar, { type SectionKey } from '@/components/Sidebar';
 import { exportarReporteExcel, exportarReportePDF, type ExportReporteData } from '@/lib/exportUtils';
@@ -836,6 +837,7 @@ export default function Home() {
     nomina: 'Nómina y Comisiones',
     conciliacion: 'Conciliación Bancaria',
     redistribucion: 'Reporte de Redistribución y Cierre de Utilidades',
+    cierreMensual: 'Cierre Mensual de Utilidades, Bonificaciones y Fondos de Ahorro',
   };
 
   const handleSidebarSection = (section: SectionKey) => {
@@ -862,6 +864,11 @@ export default function Home() {
     }
 
     if (section === 'redistribucion') {
+      setActiveTable('ventas');
+      return;
+    }
+
+    if (section === 'cierreMensual') {
       setActiveTable('ventas');
     }
   };
@@ -1019,6 +1026,13 @@ export default function Home() {
         <div className="mx-auto max-w-[1600px] px-4 py-6 sm:px-6 lg:px-8">
           {activeSection === 'redistribucion' ? (
             <ReporteRedistribucion
+              ventas={filteredVentas}
+              gastos={filteredGastos}
+              fechaDesde={fechaDesde}
+              fechaHasta={fechaHasta}
+            />
+          ) : activeSection === 'cierreMensual' ? (
+            <ReporteCierreMensual
               ventas={filteredVentas}
               gastos={filteredGastos}
               fechaDesde={fechaDesde}
