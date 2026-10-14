@@ -126,7 +126,7 @@ export default function ModalConfigurarMetas({
       <div className="relative w-full max-w-xl rounded-2xl border border-slate-700 bg-slate-900 shadow-2xl shadow-slate-950/60">
         <div className="flex items-center justify-between border-b border-slate-700 px-5 py-4">
           <div>
-            <p className="text-xs font-medium uppercase tracking-[0.2em] text-emerald-300">Configuración</p>
+            <p className="text-xs font-medium uppercase tracking-[0.2em] text-slate-300">Configuración</p>
             <h2 className="mt-1 text-xl font-semibold text-white">Metas de sucursal</h2>
           </div>
           <button
@@ -146,7 +146,7 @@ export default function ModalConfigurarMetas({
               <select
                 value={sucursalId}
                 onChange={(event) => setSucursalId(event.target.value)}
-                className="w-full rounded-xl border border-slate-600 bg-slate-800 px-3 py-2.5 text-sm text-white outline-none transition focus:border-emerald-400"
+                className="w-full rounded-xl border border-slate-600 bg-slate-800 px-3 py-2.5 text-sm text-white outline-none transition focus:border-blue-400"
               >
                 {sucursales.map((sucursal) => (
                   <option key={String(sucursal.id)} value={String(sucursal.id)}>
@@ -161,7 +161,7 @@ export default function ModalConfigurarMetas({
               <select
                 value={mes}
                 onChange={(event) => setMes(Number(event.target.value))}
-                className="w-full rounded-xl border border-slate-600 bg-slate-800 px-3 py-2.5 text-sm text-white outline-none transition focus:border-emerald-400"
+                className="w-full rounded-xl border border-slate-600 bg-slate-800 px-3 py-2.5 text-sm text-white outline-none transition focus:border-blue-400"
               >
                 {monthLabels.map((label, index) => (
                   <option key={label} value={index + 1}>
@@ -180,7 +180,7 @@ export default function ModalConfigurarMetas({
               step="1"
               value={anio}
               onChange={(event) => setAnio(Number(event.target.value || new Date().getFullYear()))}
-              className="w-full rounded-xl border border-slate-600 bg-slate-800 px-3 py-2.5 text-sm text-white outline-none transition focus:border-emerald-400"
+              className="w-full rounded-xl border border-slate-600 bg-slate-800 px-3 py-2.5 text-sm text-white outline-none transition focus:border-blue-400"
             />
           </label>
 
@@ -193,7 +193,7 @@ export default function ModalConfigurarMetas({
                 step="0.01"
                 value={metaMonto}
                 onChange={(event) => setMetaMonto(event.target.value)}
-                className="w-full rounded-xl border border-slate-600 bg-slate-800 px-3 py-2.5 text-sm text-white outline-none transition focus:border-emerald-400"
+                className="w-full rounded-xl border border-slate-600 bg-slate-800 px-3 py-2.5 text-sm text-white outline-none transition focus:border-blue-400"
               />
             </label>
 
@@ -205,7 +205,7 @@ export default function ModalConfigurarMetas({
                 step="0.01"
                 value={bonoCumplimiento}
                 onChange={(event) => setBonoCumplimiento(event.target.value)}
-                className="w-full rounded-xl border border-slate-600 bg-slate-800 px-3 py-2.5 text-sm text-white outline-none transition focus:border-emerald-400"
+                className="w-full rounded-xl border border-slate-600 bg-slate-800 px-3 py-2.5 text-sm text-white outline-none transition focus:border-blue-400"
               />
             </label>
           </div>
@@ -227,7 +227,7 @@ export default function ModalConfigurarMetas({
             <button
               type="submit"
               disabled={loading}
-              className="inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-500 px-4 py-2.5 text-sm font-semibold text-slate-950 transition hover:bg-emerald-400 disabled:cursor-not-allowed disabled:opacity-70"
+              className="inline-flex items-center justify-center gap-2 rounded-xl bg-orange-500 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-orange-400 disabled:cursor-not-allowed disabled:opacity-70"
             >
               {loading ? (
                 <>

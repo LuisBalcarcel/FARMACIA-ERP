@@ -36,6 +36,24 @@ export type ExportGastoRow = {
   monto: number;
 };
 
+export type ExportVentaRow = {
+  fechaInicio: string;
+  fechaFin: string;
+  tipoPeriodo: string;
+  sucursal: string;
+  monto: number;
+  notas?: string;
+};
+
+export type ExportConciliacionRow = {
+  sucursal: string;
+  periodo: string;
+  totalRecaudado: number;
+  totalDepositado: number;
+  diferencia: number;
+  detalle: Array<{ banco: string; noBoleta: string }>;
+};
+
 export type ExportReporteData = {
   fechaInicio: string;
   fechaFin: string;
@@ -44,6 +62,8 @@ export type ExportReporteData = {
   resumen: ExportSummary;
   nomina: ExportEmpleadoRow[];
   gastos: ExportGastoRow[];
+  ventas?: ExportVentaRow[];
+  conciliacion?: ExportConciliacionRow[];
 };
 
 const formatCurrency = (value: number): string =>
@@ -73,76 +93,65 @@ const formatDate = (value: string | undefined): string => {
 
 const getCurrentDateStamp = (): string => new Date().toISOString().slice(0, 10);
 
+const applyBlueHeaderStyle = (sheet: XLSX.WorkSheet, rowIndex: number, colStart: number, colEnd: number) => {
+  for (let colIndex = colStart; colIndex <= colEnd; colIndex += 1) {
+    const cellRef = XLSX.utils.encode_cell({ r: rowIndex, c: colIndex });
+    const cell = sheet[cellRef];
+    if (!cell) continue;
+
+    cell.s = {
+      fill: { fgColor: { rgb: '1D4ED8' } },
+      font: { bold: true, color: { rgb: 'FFFFFF' } },
+      alignment: { horizontal: 'center', vertical: 'center' },
+      border: {
+        top: { style: 'thin', color: { rgb: 'BFDBFE' } },
+        bottom: { style: 'thin', color: { rgb: 'BFDBFE' } },
+        left: { style: 'thin', color: { rgb: 'BFDBFE' } },
+        right: { style: 'thin', color: { rgb: 'BFDBFE' } },
+      },
+    };
+  }
+};
+
 const buildResumenSheet = (data: ExportReporteData): XLSX.WorkSheet => {
   const summaryRows = [
     ['Reporte Financiero', 'Farmacias ERP'],
-    ['Rango de fechas', data.rangoTexto],
+    ['Rango analizado', data.rangoTexto],
+    ['Periodo', `${data.fechaInicio} - ${data.fechaFin}`],
     ['Sucursal', data.sucursal],
     ['Ventas Brutas', formatCurrency(data.resumen.ventasBrutas)],
     ['Inversión', formatCurrency(data.resumen.inversion)],
-    ['Ganancia Bruta', formatCurrency(data.resumen.gananciaBruta)],
+    ['Margen Bruto', formatCurrency(data.resumen.gananciaBruta)],
     ['Gastos Totales', formatCurrency(data.resumen.gastosTotales)],
-    ['Ganancia Neta', formatCurrency(data.resumen.gananciaNeta)],
-    ['Límite del tercio presupuestario', formatCurrency(data.resumen.limiteTercio)],
-    ['Estado de cumplimiento', data.resumen.cumplimiento],
+    ['Margen Neto', formatCurrency(data.resumen.gananciaNeta)],
+    ['Límite del tercio', formatCurrency(data.resumen.limiteTercio)],
+    ['Estado', data.resumen.cumplimiento],
   ];
 
   const sheet = XLSX.utils.aoa_to_sheet(summaryRows);
-  sheet['!cols'] = [
-    { wch: 28 },
-    { wch: 24 },
-  ];
+  applyBlueHeaderStyle(sheet, 0, 0, 1);
+  sheet['!cols'] = [{ wch: 30 }, { wch: 24 }];
 
   return sheet;
 };
 
-const buildNominaSheet = (data: ExportReporteData): XLSX.WorkSheet => {
-  const rows = data.nomina.map((row) => ({
-    Colaborador: row.colaborador,
-    Sucursal: row.sucursal ?? 'Sin sucursal',
-    Puesto: row.puesto,
-    Área: row.area,
-    'Venta Registrada': formatCurrency(row.ventaIndividual),
-    'Salario Base': formatCurrency(row.salarioBase),
-    '% Meta Alcanzado': `${(row.porcentajeMeta ?? 0).toFixed(1)}%`,
-    '% Comisión': `${(row.porcentajeComision * 100).toFixed(2)}%`,
-    'Comisión Ganada': formatCurrency(row.comisionGanada),
-    'Bono Meta': formatCurrency(row.bonoMeta ?? 0),
-    'Retención IGSS': formatCurrency(row.retencionIgss ?? 0),
-    'Líquido a Pagar': formatCurrency(row.liquidoPagar ?? row.totalDevengado),
+const buildVentasSheet = (data: ExportReporteData): XLSX.WorkSheet => {
+  const rows = (data.ventas ?? []).map((venta) => ({
+    'Fecha Inicio': formatDate(venta.fechaInicio),
+    'Fecha Fin': formatDate(venta.fechaFin),
+    'Tipo de Corte': venta.tipoPeriodo,
+    Sucursal: venta.sucursal,
+    Monto: formatCurrency(venta.monto),
+    Notas: venta.notas ?? 'Sin notas',
   }));
 
   const sheet = XLSX.utils.json_to_sheet(rows, {
-    header: [
-      'Colaborador',
-      'Sucursal',
-      'Puesto',
-      'Área',
-      'Venta Registrada',
-      'Salario Base',
-      '% Meta Alcanzado',
-      '% Comisión',
-      'Comisión Ganada',
-      'Bono Meta',
-      'Retención IGSS',
-      'Líquido a Pagar',
-    ],
+    header: ['Fecha Inicio', 'Fecha Fin', 'Tipo de Corte', 'Sucursal', 'Monto', 'Notas'],
   });
-
-  sheet['!cols'] = [
-    { wch: 22 },
-    { wch: 18 },
-    { wch: 18 },
-    { wch: 18 },
-    { wch: 18 },
-    { wch: 16 },
-    { wch: 16 },
-    { wch: 12 },
-    { wch: 18 },
-    { wch: 14 },
-    { wch: 16 },
-    { wch: 18 },
-  ];
+  if (rows.length > 0) {
+    applyBlueHeaderStyle(sheet, 0, 0, 5);
+  }
+  sheet['!cols'] = [{ wch: 16 }, { wch: 16 }, { wch: 18 }, { wch: 24 }, { wch: 18 }, { wch: 40 }];
 
   return sheet;
 };
@@ -159,14 +168,58 @@ const buildGastosSheet = (data: ExportReporteData): XLSX.WorkSheet => {
   const sheet = XLSX.utils.json_to_sheet(rows, {
     header: ['Fecha', 'Categoría', 'Descripción', 'Tipo', 'Monto'],
   });
+  if (rows.length > 0) {
+    applyBlueHeaderStyle(sheet, 0, 0, 4);
+  }
+  sheet['!cols'] = [{ wch: 16 }, { wch: 20 }, { wch: 36 }, { wch: 16 }, { wch: 18 }];
 
-  sheet['!cols'] = [
-    { wch: 16 },
-    { wch: 20 },
-    { wch: 30 },
-    { wch: 16 },
-    { wch: 16 },
-  ];
+  return sheet;
+};
+
+const buildNominaSheet = (data: ExportReporteData): XLSX.WorkSheet => {
+  const rows = data.nomina.map((row) => ({
+    Colaborador: row.colaborador,
+    Sucursal: row.sucursal ?? 'Sin sucursal',
+    Puesto: row.puesto,
+    Área: row.area,
+    'Venta Registrada': formatCurrency(row.ventaIndividual),
+    'Salario Base': formatCurrency(row.salarioBase),
+    '% Meta': `${(row.porcentajeMeta ?? 0).toFixed(1)}%`,
+    '% Comisión': `${(row.porcentajeComision * 100).toFixed(2)}%`,
+    'Comisión Ganada': formatCurrency(row.comisionGanada),
+    'Bono Meta': formatCurrency(row.bonoMeta ?? 0),
+    'Retención IGSS': formatCurrency(row.retencionIgss ?? 0),
+    'Líquido a Pagar': formatCurrency(row.liquidoPagar ?? row.totalDevengado),
+  }));
+
+  const sheet = XLSX.utils.json_to_sheet(rows, {
+    header: ['Colaborador', 'Sucursal', 'Puesto', 'Área', 'Venta Registrada', 'Salario Base', '% Meta', '% Comisión', 'Comisión Ganada', 'Bono Meta', 'Retención IGSS', 'Líquido a Pagar'],
+  });
+  if (rows.length > 0) {
+    applyBlueHeaderStyle(sheet, 0, 0, 11);
+  }
+  sheet['!cols'] = [{ wch: 22 }, { wch: 18 }, { wch: 18 }, { wch: 18 }, { wch: 18 }, { wch: 16 }, { wch: 12 }, { wch: 12 }, { wch: 18 }, { wch: 14 }, { wch: 16 }, { wch: 18 }];
+
+  return sheet;
+};
+
+const buildConciliacionSheet = (data: ExportReporteData): XLSX.WorkSheet => {
+  const rows = (data.conciliacion ?? []).map((row) => ({
+    Sucursal: row.sucursal,
+    Periodo: row.periodo,
+    'Ventas Sistema': formatCurrency(row.totalRecaudado),
+    'Depositado Banco': formatCurrency(row.totalDepositado),
+    Diferencia: formatCurrency(row.diferencia),
+    'Detalle Boletas': row.detalle.map((detalle) => `${detalle.banco} / ${detalle.noBoleta}`).join(' | '),
+  }));
+
+  const sheet = XLSX.utils.json_to_sheet(rows, {
+    header: ['Sucursal', 'Periodo', 'Ventas Sistema', 'Depositado Banco', 'Diferencia', 'Detalle Boletas'],
+  });
+  if (rows.length > 0) {
+    applyBlueHeaderStyle(sheet, 0, 0, 5);
+  }
+  sheet['!cols'] = [{ wch: 20 }, { wch: 18 }, { wch: 20 }, { wch: 20 }, { wch: 18 }, { wch: 46 }];
 
   return sheet;
 };
@@ -174,11 +227,25 @@ const buildGastosSheet = (data: ExportReporteData): XLSX.WorkSheet => {
 export const exportarReporteExcel = (data: ExportReporteData): void => {
   const workbook = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(workbook, buildResumenSheet(data), 'Resumen Ejecutivo');
-  XLSX.utils.book_append_sheet(workbook, buildNominaSheet(data), 'Nómina y Comisiones');
+  XLSX.utils.book_append_sheet(workbook, buildVentasSheet(data), 'Ventas por Farmacia');
   XLSX.utils.book_append_sheet(workbook, buildGastosSheet(data), 'Gastos Operativos');
+  XLSX.utils.book_append_sheet(workbook, buildNominaSheet(data), 'Nómina y Comisiones');
+  XLSX.utils.book_append_sheet(workbook, buildConciliacionSheet(data), 'Conciliación Bancaria');
 
   const filename = `Reporte_Financiero_Farmacias_${getCurrentDateStamp()}.xlsx`;
   XLSX.writeFile(workbook, filename);
+};
+
+const addSummaryTable = (doc: jsPDF, rows: [string, string][], startY: number) => {
+  autoTable(doc, {
+    startY,
+    head: [['Indicador', 'Valor']],
+    body: rows,
+    theme: 'grid',
+    styles: { fontSize: 9, cellPadding: 2 },
+    headStyles: { fillColor: [30, 64, 175], textColor: [255, 255, 255], fontStyle: 'bold' },
+    alternateRowStyles: { fillColor: [239, 246, 255] },
+  });
 };
 
 export const exportarReportePDF = (data: ExportReporteData): void => {
@@ -186,53 +253,53 @@ export const exportarReportePDF = (data: ExportReporteData): void => {
   const pageWidth = doc.internal.pageSize.getWidth();
 
   doc.setFillColor(15, 23, 42);
-  doc.rect(0, 0, pageWidth, 24, 'F');
+  doc.rect(0, 0, pageWidth, 26, 'F');
   doc.setTextColor(255, 255, 255);
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(16);
-  doc.text('INFORME EJECUTIVO Y FINANCIERO', pageWidth / 2, 15, { align: 'center' });
+  doc.text('REPORTE FINANCIERO CORPORATIVO', pageWidth / 2, 16, { align: 'center' });
 
-  doc.setTextColor(15, 23, 42);
-  doc.setFontSize(10);
-  doc.setFont('helvetica', 'normal');
-  doc.text(`Rango evaluado: ${data.rangoTexto}`, 14, 34);
-  doc.text(`Sucursal: ${data.sucursal}`, 14, 40);
-  doc.text(`Fecha/Hora de emisión: ${new Date().toLocaleString('es-GT')}`, 14, 46);
+  doc.setFillColor(249, 115, 22);
+  doc.roundedRect(12, 30, pageWidth - 24, 18, 3, 3, 'F');
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(9);
+  doc.text(`Rango analizado: ${data.rangoTexto} | Sucursal: ${data.sucursal} | Emitido: ${new Date().toLocaleString('es-GT')}`, 18, 41);
 
-  const resumenRows = [
-    ['Ventas', formatCurrency(data.resumen.ventasBrutas)],
-    ['Costos', formatCurrency(data.resumen.inversion)],
-    ['Utilidad Bruta', formatCurrency(data.resumen.gananciaBruta)],
+  const summaryRows: [string, string][] = [
+    ['Ventas Brutas', formatCurrency(data.resumen.ventasBrutas)],
+    ['Inversión', formatCurrency(data.resumen.inversion)],
+    ['Margen Bruto', formatCurrency(data.resumen.gananciaBruta)],
     ['Gastos Totales', formatCurrency(data.resumen.gastosTotales)],
-    ['Utilidad Neta', formatCurrency(data.resumen.gananciaNeta)],
-    ['Límite 33.3%', formatCurrency(data.resumen.limiteTercio)],
+    ['Margen Neto', formatCurrency(data.resumen.gananciaNeta)],
+    ['Límite del tercio', formatCurrency(data.resumen.limiteTercio)],
     ['Diagnóstico', data.resumen.cumplimiento],
   ];
 
+  addSummaryTable(doc, summaryRows, 58);
+
+  const ventasTableY = (doc as jsPDF & { lastAutoTable?: { finalY?: number } }).lastAutoTable?.finalY ?? 58;
+
   autoTable(doc, {
-    startY: 54,
-    head: [['Indicador', 'Valor']],
-    body: resumenRows,
+    startY: ventasTableY + 12,
+    head: [['Fecha inicio', 'Fecha fin', 'Tipo', 'Farmacia', 'Monto', 'Notas']],
+    body: (data.ventas ?? []).map((venta) => [
+      formatDate(venta.fechaInicio),
+      formatDate(venta.fechaFin),
+      venta.tipoPeriodo,
+      venta.sucursal,
+      formatCurrency(venta.monto),
+      venta.notas ?? 'Sin notas',
+    ]),
     theme: 'grid',
-    styles: {
-      fontSize: 9,
-      cellPadding: 2,
-    },
-    headStyles: {
-      fillColor: [15, 23, 42],
-      textColor: 255,
-      fontStyle: 'bold',
-    },
-    alternateRowStyles: {
-      fillColor: [248, 250, 252],
-    },
+    styles: { fontSize: 7, cellPadding: 2 },
+    headStyles: { fillColor: [30, 64, 175], textColor: [255, 255, 255], fontStyle: 'bold' },
   });
 
-  const firstTableY = (doc as jsPDF & { lastAutoTable?: { finalY?: number } }).lastAutoTable?.finalY ?? 54;
+  const ventasLastY = (doc as jsPDF & { lastAutoTable?: { finalY?: number } }).lastAutoTable?.finalY ?? 58;
 
   autoTable(doc, {
-    startY: firstTableY + 12,
-    head: [['Colaborador', 'Sucursal', 'Puesto', 'Área', 'Venta', 'Salario Base', '% Meta', 'Comisión', 'Bono Meta', 'IGSS', 'Líquido']],
+    startY: ventasLastY + 10,
+    head: [['Colaborador', 'Sucursal', 'Puesto', 'Área', 'Venta', 'Salario', '% Meta', 'Comisión', 'IGSS', 'Líquido']],
     body: data.nomina.map((row) => [
       row.colaborador,
       row.sucursal ?? 'Sin sucursal',
@@ -242,57 +309,54 @@ export const exportarReportePDF = (data: ExportReporteData): void => {
       formatCurrency(row.salarioBase),
       `${(row.porcentajeMeta ?? 0).toFixed(1)}%`,
       formatCurrency(row.comisionGanada),
-      formatCurrency(row.bonoMeta ?? 0),
       formatCurrency(row.retencionIgss ?? 0),
       formatCurrency(row.liquidoPagar ?? row.totalDevengado),
     ]),
     theme: 'grid',
-    styles: {
-      fontSize: 7,
-      cellPadding: 2,
-    },
-    headStyles: {
-      fillColor: [37, 99, 235],
-      textColor: 255,
-      fontStyle: 'bold',
-    },
-    didDrawPage: (dataTable) => {
-      const total = data.nomina.reduce((sum, row) => sum + (row.liquidoPagar ?? row.totalDevengado), 0);
-      if (dataTable.pageNumber === doc.getNumberOfPages() && dataTable.cursor) {
+    styles: { fontSize: 7, cellPadding: 2 },
+    headStyles: { fillColor: [249, 115, 22], textColor: [255, 255, 255], fontStyle: 'bold' },
+    didDrawPage: (tableData) => {
+      const totalNomina = data.nomina.reduce((sum, item) => sum + (item.liquidoPagar ?? item.totalDevengado), 0);
+      if (tableData.pageNumber === doc.getNumberOfPages() && tableData.cursor) {
         doc.setFont('helvetica', 'bold');
         doc.setFontSize(9);
-        doc.text(`Total general: ${formatCurrency(total)}`, pageWidth - 14, dataTable.cursor.y + 8, { align: 'right' });
+        doc.text(`Total nómina: ${formatCurrency(totalNomina)}`, pageWidth - 14, tableData.cursor.y + 8, { align: 'right' });
       }
     },
   });
 
-  const secondTableY = (doc as jsPDF & { lastAutoTable?: { finalY?: number } }).lastAutoTable?.finalY ?? 54;
-  const gastosAgrupados = data.gastos.reduce<Record<string, number>>((accumulator, gasto) => {
-    accumulator[gasto.categoria] = (accumulator[gasto.categoria] ?? 0) + gasto.monto;
-    return accumulator;
-  }, {});
-
-  const gastosRows = Object.entries(gastosAgrupados).map(([categoria, monto]) => [categoria, formatCurrency(monto)]);
-  const totalGastosPDF = Object.values(gastosAgrupados).reduce((sum, value) => sum + value, 0);
+  const nominaLastY = (doc as jsPDF & { lastAutoTable?: { finalY?: number } }).lastAutoTable?.finalY ?? ventasLastY;
 
   autoTable(doc, {
-    startY: secondTableY + 10,
+    startY: nominaLastY + 8,
     head: [['Categoría', 'Monto']],
-    body: [...gastosRows, ['Total general', formatCurrency(totalGastosPDF)]],
+    body: [...Object.entries(data.gastos.reduce<Record<string, number>>((acc, gasto) => {
+      acc[gasto.categoria] = (acc[gasto.categoria] ?? 0) + gasto.monto;
+      return acc;
+    }, {})).map(([categoria, monto]) => [categoria, formatCurrency(monto)]), ['Total', formatCurrency(data.resumen.gastosTotales)]],
     theme: 'grid',
-    styles: {
-      fontSize: 8,
-      cellPadding: 2,
-    },
-    headStyles: {
-      fillColor: [127, 29, 29],
-      textColor: 255,
-      fontStyle: 'bold',
-    },
-    alternateRowStyles: {
-      fillColor: [255, 247, 237],
-    },
+    styles: { fontSize: 8, cellPadding: 2 },
+    headStyles: { fillColor: [30, 64, 175], textColor: [255, 255, 255], fontStyle: 'bold' },
   });
+
+  const conciliacionProduced = (data.conciliacion ?? []).length > 0;
+  if (conciliacionProduced) {
+    const concY = (doc as jsPDF & { lastAutoTable?: { finalY?: number } }).lastAutoTable?.finalY ?? nominaLastY;
+    autoTable(doc, {
+      startY: concY + 10,
+      head: [['Sucursal', 'Periodo', 'Ventas', 'Depositado', 'Diferencia']],
+      body: (data.conciliacion ?? []).map((row) => [
+        row.sucursal,
+        row.periodo,
+        formatCurrency(row.totalRecaudado),
+        formatCurrency(row.totalDepositado),
+        formatCurrency(row.diferencia),
+      ]),
+      theme: 'grid',
+      styles: { fontSize: 7, cellPadding: 2 },
+      headStyles: { fillColor: [249, 115, 22], textColor: [255, 255, 255], fontStyle: 'bold' },
+    });
+  }
 
   doc.save(`Informe_Financiero_Farmacias_${getCurrentDateStamp()}.pdf`);
 };

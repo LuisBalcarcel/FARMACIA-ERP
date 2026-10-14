@@ -277,9 +277,9 @@ export default function PanelLateralCRM({
                 <h3 className="mt-2 text-xl font-semibold text-white">{selectedSucursal.nombre}</h3>
 
                 <div className="mt-4 space-y-3">
-                  <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-3">
-                    <p className="text-[10px] uppercase tracking-[0.18em] text-emerald-300">Total recaudado</p>
-                    <p className="mt-2 font-mono text-2xl font-semibold text-emerald-300">
+                  <div className="rounded-xl border border-orange-500/30 bg-orange-500/10 p-3">
+                    <p className="text-[10px] uppercase tracking-[0.18em] text-orange-300">Total recaudado</p>
+                    <p className="mt-2 font-mono text-2xl font-semibold text-orange-300">
                       {formatCurrency(summary.totalRecaudado)}
                     </p>
                   </div>
@@ -331,7 +331,7 @@ export default function PanelLateralCRM({
 
                         <div className="mt-3 flex items-center justify-between gap-3 text-sm">
                           <span className="text-slate-400">Monto</span>
-                          <span className="font-mono text-emerald-300">{formatCurrency(entrega.monto)}</span>
+                          <span className="font-mono text-orange-300">{formatCurrency(entrega.monto)}</span>
                         </div>
 
                         {entrega.remesa && (

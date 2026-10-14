@@ -682,8 +682,24 @@ export default function Home() {
       },
       nomina,
       gastos: gastosReporte,
+      ventas: ventasActivas.map((venta) => ({
+        fechaInicio: venta.fecha_inicio_corte ?? venta.fecha_venta ?? currentDateInfo.iso,
+        fechaFin: venta.fecha_fin_corte ?? venta.fecha_venta ?? currentDateInfo.iso,
+        tipoPeriodo: venta.tipo_periodo ?? 'Rango',
+        sucursal: sucursales.find((item) => String(item.id) === String(venta.sucursal_id))?.nombre ?? 'Sucursal',
+        monto: Number(venta.monto_bruto ?? 0),
+        notas: venta.notas_recaudacion ?? `Venta ${venta.tipo_periodo ?? 'general'}`,
+      })),
+      conciliacion: conciliacionRows.map((row) => ({
+        sucursal: row.sucursal,
+        periodo: row.periodo,
+        totalRecaudado: row.totalRecaudado,
+        totalDepositado: row.totalDepositado,
+        diferencia: row.diferencia,
+        detalle: row.detalle,
+      })),
     };
-  }, [currentDateInfo.iso, currentDateInfo.year, gastosActivos, selectedBranch, selectedMonth, sucursales, ventasActivas, empleados]);
+  }, [conciliacionRows, currentDateInfo.iso, currentDateInfo.year, gastosActivos, selectedBranch, selectedMonth, sucursales, ventasActivas, empleados]);
 
   const handleExportarExcel = async (): Promise<void> => {
     console.log('Click Excel');
@@ -877,7 +893,7 @@ export default function Home() {
         <header className="border-b border-slate-800 bg-slate-950/80 p-4 shadow-xl shadow-slate-950/20 backdrop-blur-sm sm:p-6">
           <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
             <div>
-              <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-emerald-400">ERP farmacéutico</p>
+              <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-orange-300">ERP farmacéutico</p>
               <h1 className="mt-2 text-2xl font-semibold text-white sm:text-3xl">{selectedSectionTitle}</h1>
             </div>
 
@@ -886,7 +902,7 @@ export default function Home() {
                 <select
                   value={selectedBranch}
                   onChange={(event) => setSelectedBranch(event.target.value)}
-                  className="rounded-xl border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-200 outline-none transition focus:border-emerald-400"
+                  className="rounded-xl border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-200 outline-none transition focus:border-orange-400"
                 >
                   <option value="all">Todas las sucursales</option>
                   {sucursales.map((sucursal) => (
@@ -908,7 +924,7 @@ export default function Home() {
                       setFechaDesde(event.target.value);
                       setActiveDatePreset('personalizado');
                     }}
-                    className="rounded-lg border border-slate-600 bg-slate-900 px-2 py-1.5 text-xs text-white outline-none transition focus:border-emerald-400"
+                    className="rounded-lg border border-slate-600 bg-slate-900 px-2 py-1.5 text-xs text-white outline-none transition focus:border-blue-400"
                   />
                 </label>
                 <label className="flex items-center gap-2 text-xs text-slate-300">
@@ -920,7 +936,7 @@ export default function Home() {
                       setFechaHasta(event.target.value);
                       setActiveDatePreset('personalizado');
                     }}
-                    className="rounded-lg border border-slate-600 bg-slate-900 px-2 py-1.5 text-xs text-white outline-none transition focus:border-emerald-400"
+                    className="rounded-lg border border-slate-600 bg-slate-900 px-2 py-1.5 text-xs text-white outline-none transition focus:border-blue-400"
                   />
                 </label>
               </div>
@@ -938,7 +954,7 @@ export default function Home() {
                     onClick={() => applyDatePreset(preset.key as 'hoy' | 'semana' | 'mes' | 'personalizado')}
                     className={`rounded-lg border px-2.5 py-1.5 text-[11px] font-medium transition ${
                       activeDatePreset === preset.key
-                        ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-200'
+                        ? 'border-orange-500/40 bg-orange-500/10 text-orange-200'
                         : 'border-slate-700 bg-slate-800 text-slate-300 hover:border-slate-500 hover:text-white'
                     }`}
                   >
@@ -980,7 +996,7 @@ export default function Home() {
 
         <section className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-5">
           {[
-            { label: 'Ventas activas', value: formatCurrency(totalVentas), accent: 'emerald', icon: DollarSign },
+            { label: 'Ventas activas', value: formatCurrency(totalVentas), accent: 'blue', icon: DollarSign },
             { label: 'Inversión total', value: formatCurrency(totalInversion), accent: 'blue', icon: Receipt },
             { label: 'Ganancia bruta', value: formatCurrency(gananciaBruta), accent: 'amber', icon: DollarSign },
             { label: 'Gastos operativos', value: formatCurrency(totalGastosGlobales), accent: 'rose', icon: Receipt },
@@ -991,7 +1007,7 @@ export default function Home() {
               <div key={card.label} className="rounded-2xl border border-slate-800 bg-slate-900 p-4 shadow-lg shadow-slate-950/30">
                 <div className="flex items-center justify-between">
                   <p className="text-xs uppercase tracking-[0.2em] text-slate-400">{card.label}</p>
-                  <span className={`rounded-lg border p-2 ${card.accent === 'emerald' ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-300' : card.accent === 'blue' ? 'border-blue-500/40 bg-blue-500/10 text-blue-300' : card.accent === 'amber' ? 'border-amber-500/40 bg-amber-500/10 text-amber-300' : card.accent === 'rose' ? 'border-rose-500/40 bg-rose-500/10 text-rose-300' : 'border-cyan-500/40 bg-cyan-500/10 text-cyan-300'}`}>
+                  <span className={`rounded-lg border p-2 ${card.accent === 'emerald' ? 'border-blue-500/40 bg-blue-950/40 text-blue-300' : card.accent === 'blue' ? 'border-blue-500/40 bg-blue-500/10 text-blue-300' : card.accent === 'amber' ? 'border-amber-500/40 bg-amber-500/10 text-amber-300' : card.accent === 'rose' ? 'border-rose-500/40 bg-rose-500/10 text-rose-300' : 'border-cyan-500/40 bg-cyan-500/10 text-cyan-300'}`}>
                     <Icon className="h-4 w-4" />
                   </span>
                 </div>
@@ -1009,8 +1025,8 @@ export default function Home() {
             const gastoRatio = gananciaBrutaValida > 0 ? (totalGastosGlobales / gananciaBrutaValida) * 100 : 0;
 
             let estado: 'SALUDABLE' | 'PRECAUCIÓN' | 'CRÍTICO' = 'SALUDABLE';
-            let borderClass = 'border-emerald-500/40 bg-emerald-500/10 text-emerald-200';
-            let labelClass = 'text-emerald-300';
+            let borderClass = 'border-blue-500/40 bg-blue-950/40 text-blue-100';
+            let labelClass = 'text-blue-300';
             let leyenda = `Los gastos operativos representan el ${gastoRatio.toFixed(1)}% del margen. Se encuentra dentro del límite presupuestario.`;
 
             if (gananciaBruta <= 0 || gastoRatio > 45) {
@@ -1064,14 +1080,14 @@ export default function Home() {
                       onClick={() => setActiveTable(tab.key as 'ventas' | 'gastos' | 'nomina' | 'conciliacion')}
                       className={`flex w-full items-center justify-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition ${
                         isActive
-                          ? 'bg-emerald-500/15 text-emerald-200 shadow-inner shadow-emerald-500/10'
+                          ? 'bg-orange-500/15 text-orange-200 shadow-inner shadow-orange-500/10'
                           : 'text-slate-300 hover:bg-slate-800 hover:text-white'
                       }`}
                     >
                       <span>{tab.label}</span>
                       <span
                         className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${
-                          isActive ? 'bg-emerald-500/20 text-emerald-200' : 'bg-slate-800 text-slate-300'
+                          isActive ? 'bg-orange-500/20 text-orange-200' : 'bg-slate-800 text-slate-300'
                         }`}
                       >
                         {tab.count}
@@ -1104,13 +1120,13 @@ export default function Home() {
                             ? 'Buscar categoría, descripción o sucursal...'
                             : 'Buscar colaborador, sucursal o área...'
                       }
-                      className="w-full rounded-xl border border-slate-700 bg-slate-900 px-3 py-2.5 text-sm text-white placeholder:text-slate-400 focus:border-emerald-400 focus:outline-none sm:max-w-xs"
+                      className="w-full rounded-xl border border-slate-700 bg-slate-900 px-3 py-2.5 text-sm text-white placeholder:text-slate-400 focus:border-blue-400 focus:outline-none sm:max-w-xs"
                     />
 
                     <select
                       value={tableStatusFilter}
                       onChange={(event) => setTableStatusFilter(event.target.value as 'all' | 'active' | 'anulados')}
-                      className="rounded-xl border border-slate-700 bg-slate-900 px-3 py-2.5 text-sm text-slate-200 outline-none transition focus:border-emerald-400"
+                      className="rounded-xl border border-slate-700 bg-slate-900 px-3 py-2.5 text-sm text-slate-200 outline-none transition focus:border-blue-400"
                     >
                       <option value="all">Todos</option>
                       <option value="active">Solo activos</option>

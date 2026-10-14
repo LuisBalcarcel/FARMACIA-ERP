@@ -39,11 +39,11 @@ export default function Sidebar({
     <aside className="fixed left-0 top-0 z-40 flex min-h-screen w-64 flex-col justify-between border-r border-slate-800/80 bg-slate-950 p-5">
       <div className="space-y-6">
         <div className="flex items-center gap-3 border-b border-slate-800 pb-4">
-          <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-emerald-500/40 bg-emerald-500/10 text-emerald-300 shadow-lg shadow-emerald-900/20">
+          <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-orange-500/40 bg-orange-500/10 text-orange-300 shadow-lg shadow-orange-900/20">
             <Pill className="h-5 w-5" />
           </div>
           <div>
-            <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-emerald-300">ERP FARMACIAS</p>
+            <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-orange-300">ERP FARMACIAS</p>
             <p className="mt-1 text-xs text-slate-400">Consola Administrativa</p>
           </div>
         </div>
@@ -52,7 +52,7 @@ export default function Sidebar({
           <button
             type="button"
             onClick={() => onQuickAction('venta')}
-            className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-500 px-3 py-2.5 text-sm font-semibold text-slate-950 shadow-lg shadow-emerald-900/30 transition hover:bg-emerald-400"
+            className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-orange-500 px-3 py-2.5 text-sm font-semibold text-white shadow-lg shadow-orange-900/30 transition hover:bg-orange-400"
           >
             <Plus className="h-4 w-4" />
             + Venta / Recaudación
@@ -61,7 +61,7 @@ export default function Sidebar({
           <button
             type="button"
             onClick={() => onQuickAction('gasto')}
-            className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-rose-500 px-3 py-2.5 text-sm font-semibold text-white shadow-lg shadow-rose-900/30 transition hover:bg-rose-400"
+            className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-3 py-2.5 text-sm font-semibold text-white shadow-lg shadow-blue-900/30 transition hover:bg-blue-500"
           >
             <Plus className="h-4 w-4" />
             + Gasto Operativo
@@ -70,7 +70,7 @@ export default function Sidebar({
           <button
             type="button"
             onClick={() => onQuickAction('farmacia')}
-            className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-slate-700 bg-slate-900 px-3 py-2.5 text-sm font-medium text-slate-200 transition hover:border-emerald-400 hover:text-emerald-300"
+            className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-slate-700 bg-slate-900 px-3 py-2.5 text-sm font-medium text-slate-200 transition hover:border-orange-400 hover:text-orange-300"
           >
             <Store className="h-4 w-4" />
             + Nueva Farmacia
@@ -89,13 +89,13 @@ export default function Sidebar({
                 onClick={() => onSelectSection(item.key)}
                 className={`flex w-full items-start gap-3 rounded-xl border px-3 py-3 text-left transition ${
                   isActive
-                    ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-100 shadow-inner shadow-emerald-500/10'
+                    ? 'border-orange-500/40 bg-orange-500/10 text-orange-50 shadow-inner shadow-orange-500/10'
                     : 'border-slate-800 bg-slate-900/60 text-slate-300 hover:border-slate-700 hover:bg-slate-800/80 hover:text-white'
                 }`}
               >
                 <span
                   className={`mt-0.5 inline-flex h-8 w-8 items-center justify-center rounded-lg ${
-                    isActive ? 'bg-emerald-500/20 text-emerald-200' : 'bg-slate-800 text-slate-300'
+                    isActive ? 'bg-orange-500/20 text-orange-200' : 'bg-slate-800 text-slate-300'
                   }`}
                 >
                   <Icon className="h-4 w-4" />
@@ -114,7 +114,7 @@ export default function Sidebar({
         <button
           type="button"
           onClick={onExportExcel}
-          className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-slate-700 bg-slate-900 px-3 py-2.5 text-sm font-medium text-slate-200 transition hover:border-emerald-400 hover:text-emerald-300"
+          className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-slate-700 bg-slate-900 px-3 py-2.5 text-sm font-medium text-slate-200 transition hover:border-blue-400 hover:text-blue-300"
         >
           <FileSpreadsheet className="h-4 w-4" />
           Exportar Excel
@@ -123,7 +123,7 @@ export default function Sidebar({
         <button
           type="button"
           onClick={onExportPdf}
-          className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-slate-700 bg-slate-900 px-3 py-2.5 text-sm font-medium text-slate-200 transition hover:border-cyan-400 hover:text-cyan-300"
+          className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-slate-700 bg-slate-900 px-3 py-2.5 text-sm font-medium text-slate-200 transition hover:border-orange-400 hover:text-orange-300"
         >
           <FileText className="h-4 w-4" />
           Exportar PDF

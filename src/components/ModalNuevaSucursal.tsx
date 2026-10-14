@@ -80,7 +80,7 @@ export default function ModalNuevaSucursal({ isOpen, onClose, onSuccess }: Modal
       <div className="relative w-full max-w-xl rounded-2xl border border-slate-700 bg-slate-900 shadow-2xl shadow-slate-950/60">
         <div className="flex items-center justify-between border-b border-slate-700 px-5 py-4">
           <div>
-            <p className="text-xs font-medium uppercase tracking-[0.22em] text-emerald-300">Administración</p>
+            <p className="text-xs font-medium uppercase tracking-[0.22em] text-orange-300">Administración</p>
             <h2 className="mt-1 text-xl font-semibold text-white">Registrar nueva farmacia</h2>
           </div>
           <button
@@ -100,7 +100,7 @@ export default function ModalNuevaSucursal({ isOpen, onClose, onSuccess }: Modal
               type="text"
               value={nombre}
               onChange={(event) => setNombre(event.target.value.toUpperCase())}
-              className="w-full rounded-xl border border-slate-600 bg-slate-800 px-3 py-2.5 text-sm text-white outline-none transition focus:border-emerald-400"
+              className="w-full rounded-xl border border-slate-600 bg-slate-800 px-3 py-2.5 text-sm text-white outline-none transition focus:border-orange-400"
               placeholder="AMATITLAN"
               autoComplete="organization"
             />
@@ -112,7 +112,7 @@ export default function ModalNuevaSucursal({ isOpen, onClose, onSuccess }: Modal
               type="text"
               value={direccion}
               onChange={(event) => setDireccion(event.target.value)}
-              className="w-full rounded-xl border border-slate-600 bg-slate-800 px-3 py-2.5 text-sm text-white outline-none transition focus:border-emerald-400"
+              className="w-full rounded-xl border border-slate-600 bg-slate-800 px-3 py-2.5 text-sm text-white outline-none transition focus:border-orange-400"
               placeholder="Calle principal 12-34, zona 1"
             />
           </label>
@@ -123,7 +123,7 @@ export default function ModalNuevaSucursal({ isOpen, onClose, onSuccess }: Modal
               type="text"
               value={telefono}
               onChange={(event) => setTelefono(event.target.value)}
-              className="w-full rounded-xl border border-slate-600 bg-slate-800 px-3 py-2.5 text-sm text-white outline-none transition focus:border-emerald-400"
+              className="w-full rounded-xl border border-slate-600 bg-slate-800 px-3 py-2.5 text-sm text-white outline-none transition focus:border-orange-400"
               placeholder="+502 1234-5678"
             />
           </label>
@@ -145,7 +145,7 @@ export default function ModalNuevaSucursal({ isOpen, onClose, onSuccess }: Modal
             <button
               type="submit"
               disabled={loading}
-              className="inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-500 px-4 py-2.5 text-sm font-semibold text-slate-950 shadow-lg shadow-emerald-900/40 transition hover:bg-emerald-400 disabled:cursor-not-allowed disabled:opacity-70"
+              className="inline-flex items-center justify-center gap-2 rounded-xl bg-orange-500 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-orange-900/40 transition hover:bg-orange-400 disabled:cursor-not-allowed disabled:opacity-70"
             >
               {loading ? (
                 <>

@@ -296,7 +296,7 @@ export default function ModalNuevaVenta({
             type="date"
             value={fechaInicioCorte}
             onChange={(event) => handleFechaDiariaChange(event.target.value)}
-            className="w-full rounded-xl border border-slate-600 bg-slate-800 px-3 py-2.5 text-sm text-white outline-none transition focus:border-emerald-400"
+            className="w-full rounded-xl border border-slate-600 bg-slate-800 px-3 py-2.5 text-sm text-white outline-none transition focus:border-orange-400"
           />
         </label>
       );
@@ -311,7 +311,7 @@ export default function ModalNuevaVenta({
               type="date"
               value={fechaInicioCorte}
               onChange={(event) => setFechaInicioCorte(event.target.value)}
-              className="w-full rounded-xl border border-slate-600 bg-slate-800 px-3 py-2.5 text-sm text-white outline-none transition focus:border-emerald-400"
+              className="w-full rounded-xl border border-slate-600 bg-slate-800 px-3 py-2.5 text-sm text-white outline-none transition focus:border-orange-400"
             />
           </label>
 
@@ -321,7 +321,7 @@ export default function ModalNuevaVenta({
               type="date"
               value={fechaFinCorte}
               onChange={(event) => setFechaFinCorte(event.target.value)}
-              className="w-full rounded-xl border border-slate-600 bg-slate-800 px-3 py-2.5 text-sm text-white outline-none transition focus:border-emerald-400"
+              className="w-full rounded-xl border border-slate-600 bg-slate-800 px-3 py-2.5 text-sm text-white outline-none transition focus:border-orange-400"
             />
           </label>
         </div>
@@ -336,7 +336,7 @@ export default function ModalNuevaVenta({
             type="date"
             value={fechaInicioCorte}
             onChange={(event) => setFechaInicioCorte(event.target.value)}
-            className="w-full rounded-xl border border-slate-600 bg-slate-800 px-3 py-2.5 text-sm text-white outline-none transition focus:border-emerald-400"
+            className="w-full rounded-xl border border-slate-600 bg-slate-800 px-3 py-2.5 text-sm text-white outline-none transition focus:border-orange-400"
           />
         </label>
 
@@ -346,7 +346,7 @@ export default function ModalNuevaVenta({
             type="date"
             value={fechaFinCorte}
             onChange={(event) => setFechaFinCorte(event.target.value)}
-            className="w-full rounded-xl border border-slate-600 bg-slate-800 px-3 py-2.5 text-sm text-white outline-none transition focus:border-emerald-400"
+            className="w-full rounded-xl border border-slate-600 bg-slate-800 px-3 py-2.5 text-sm text-white outline-none transition focus:border-orange-400"
           />
         </label>
       </div>
@@ -360,7 +360,7 @@ export default function ModalNuevaVenta({
       <div className="relative w-full max-w-5xl rounded-2xl border border-slate-700 bg-slate-900 shadow-2xl shadow-slate-950/60">
         <div className="flex items-center justify-between border-b border-slate-700 px-5 py-4">
           <div>
-            <p className="text-xs font-medium uppercase tracking-[0.2em] text-emerald-300">Lote masivo</p>
+            <p className="text-xs font-medium uppercase tracking-[0.2em] text-orange-300">Lote masivo</p>
             <h2 className="mt-1 text-xl font-semibold text-white">Recaudación Masiva</h2>
           </div>
           <button
@@ -382,7 +382,7 @@ export default function ModalNuevaVenta({
                 onChange={(event) =>
                   handleFechaModalidadChange(event.target.value as (typeof tipoCorteOpciones)[number])
                 }
-                className="w-full rounded-xl border border-slate-600 bg-slate-800 px-3 py-2.5 text-sm text-white outline-none transition focus:border-emerald-400"
+                className="w-full rounded-xl border border-slate-600 bg-slate-800 px-3 py-2.5 text-sm text-white outline-none transition focus:border-orange-400"
               >
                 {tipoCorteOpciones.map((opcion) => (
                   <option key={opcion} value={opcion}>
@@ -417,7 +417,7 @@ export default function ModalNuevaVenta({
                             type="checkbox"
                             checked={row.selected}
                             onChange={(event) => updateRow(row.id, { selected: event.target.checked })}
-                            className="h-4 w-4 rounded border-slate-600 bg-slate-800 text-emerald-500 focus:ring-emerald-400"
+                            className="h-4 w-4 rounded border-slate-600 bg-slate-800 text-orange-500 focus:ring-orange-400"
                           />
                         </td>
                         <td className="px-3 py-3 text-slate-100">{sucursal?.nombre ?? 'Sucursal'}</td>
@@ -428,7 +428,7 @@ export default function ModalNuevaVenta({
                             step="0.01"
                             value={row.montoBruto}
                             onChange={(event) => updateRow(row.id, { montoBruto: event.target.value })}
-                            className="w-full rounded-lg border border-slate-600 bg-slate-800 px-2 py-2 text-sm font-medium text-emerald-200 outline-none transition placeholder:text-slate-400 focus:border-emerald-400"
+                            className="w-full rounded-lg border border-slate-600 bg-slate-800 px-2 py-2 text-sm font-medium text-orange-200 outline-none transition placeholder:text-slate-400 focus:border-orange-400"
                             placeholder="0.00"
                           />
                         </td>
@@ -437,7 +437,7 @@ export default function ModalNuevaVenta({
                             type="text"
                             value={row.notas}
                             onChange={(event) => updateRow(row.id, { notas: event.target.value })}
-                            className="w-full rounded-lg border border-slate-600 bg-slate-800 px-2 py-2 text-sm text-white outline-none transition placeholder:text-slate-400 focus:border-emerald-400"
+                            className="w-full rounded-lg border border-slate-600 bg-slate-800 px-2 py-2 text-sm text-white outline-none transition placeholder:text-slate-400 focus:border-orange-400"
                             placeholder="Opcional..."
                           />
                         </td>
@@ -449,11 +449,11 @@ export default function ModalNuevaVenta({
             </div>
           </div>
 
-          <div className="flex flex-col gap-3 rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-4 md:flex-row md:items-center md:justify-between">
-            <div className="text-sm text-emerald-100">
+          <div className="flex flex-col gap-3 rounded-2xl border border-orange-500/30 bg-orange-500/10 p-4 md:flex-row md:items-center md:justify-between">
+            <div className="text-sm text-orange-100">
               <span className="font-semibold">Sucursales seleccionadas:</span> {selectedRows.length}
             </div>
-            <div className="font-mono text-lg font-semibold text-emerald-300">
+            <div className="font-mono text-lg font-semibold text-orange-300">
               Gran Total Recaudado: Q {totalRecaudado.toLocaleString('es-GT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </div>
           </div>
@@ -478,7 +478,7 @@ export default function ModalNuevaVenta({
                 void handleGuardarLote();
               }}
               disabled={loading}
-              className="inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-500 px-4 py-2.5 text-sm font-semibold text-slate-950 transition hover:bg-emerald-400 disabled:cursor-not-allowed disabled:opacity-70"
+              className="inline-flex items-center justify-center gap-2 rounded-xl bg-orange-500 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-orange-400 disabled:cursor-not-allowed disabled:opacity-70"
             >
               {loading ? (
                 <>
