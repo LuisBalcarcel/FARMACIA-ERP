@@ -1,6 +1,18 @@
-import * as XLSX from 'xlsx';
-import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
+type XlsxModule = typeof import('xlsx');
+type PdfDoc = InstanceType<typeof import('jspdf').jsPDF>;
+
+const loadXlsx = async (): Promise<XlsxModule> => import('xlsx');
+
+const loadPdfModules = async () => {
+  const [{ default: jsPDF }, autoTableModule] = await Promise.all([
+    import('jspdf'),
+    import('jspdf-autotable'),
+  ]);
+
+  const autoTable = 'default' in autoTableModule ? autoTableModule.default : autoTableModule;
+
+  return { jsPDF, autoTable };
+};
 
 export type ExportSummary = {
   ventasBrutas: number;
@@ -129,7 +141,7 @@ const formatDate = (value: string | undefined): string => {
 
 const getCurrentDateStamp = (): string => new Date().toISOString().slice(0, 10);
 
-const applyBlueHeaderStyle = (sheet: XLSX.WorkSheet, rowIndex: number, colStart: number, colEnd: number) => {
+const applyBlueHeaderStyle = (XLSX: XlsxModule, sheet: any, rowIndex: number, colStart: number, colEnd: number) => {
   for (let colIndex = colStart; colIndex <= colEnd; colIndex += 1) {
     const cellRef = XLSX.utils.encode_cell({ r: rowIndex, c: colIndex });
     const cell = sheet[cellRef];
@@ -149,7 +161,7 @@ const applyBlueHeaderStyle = (sheet: XLSX.WorkSheet, rowIndex: number, colStart:
   }
 };
 
-const buildResumenSheet = (data: ExportReporteData): XLSX.WorkSheet => {
+const buildResumenSheet = (XLSX: XlsxModule, data: ExportReporteData): any => {
   const summaryRows = [
     ['Reporte Financiero', 'Farmacias ERP'],
     ['Rango analizado', data.rangoTexto],
@@ -165,13 +177,13 @@ const buildResumenSheet = (data: ExportReporteData): XLSX.WorkSheet => {
   ];
 
   const sheet = XLSX.utils.aoa_to_sheet(summaryRows);
-  applyBlueHeaderStyle(sheet, 0, 0, 1);
+  applyBlueHeaderStyle(XLSX, sheet, 0, 0, 1);
   sheet['!cols'] = [{ wch: 30 }, { wch: 24 }];
 
   return sheet;
 };
 
-const buildVentasSheet = (data: ExportReporteData): XLSX.WorkSheet => {
+const buildVentasSheet = (XLSX: XlsxModule, data: ExportReporteData): any => {
   const rows = (data.ventas ?? []).map((venta) => ({
     'Fecha Inicio': formatDate(venta.fechaInicio),
     'Fecha Fin': formatDate(venta.fechaFin),
@@ -185,14 +197,14 @@ const buildVentasSheet = (data: ExportReporteData): XLSX.WorkSheet => {
     header: ['Fecha Inicio', 'Fecha Fin', 'Tipo de Corte', 'Sucursal', 'Monto', 'Notas'],
   });
   if (rows.length > 0) {
-    applyBlueHeaderStyle(sheet, 0, 0, 5);
+    applyBlueHeaderStyle(XLSX, sheet, 0, 0, 5);
   }
   sheet['!cols'] = [{ wch: 16 }, { wch: 16 }, { wch: 18 }, { wch: 24 }, { wch: 18 }, { wch: 40 }];
 
   return sheet;
 };
 
-const buildGastosSheet = (data: ExportReporteData): XLSX.WorkSheet => {
+const buildGastosSheet = (XLSX: XlsxModule, data: ExportReporteData): any => {
   const rows = data.gastos.map((gasto) => ({
     Fecha: formatDate(gasto.fecha),
     Categoría: gasto.categoria,
@@ -205,14 +217,14 @@ const buildGastosSheet = (data: ExportReporteData): XLSX.WorkSheet => {
     header: ['Fecha', 'Categoría', 'Descripción', 'Tipo', 'Monto'],
   });
   if (rows.length > 0) {
-    applyBlueHeaderStyle(sheet, 0, 0, 4);
+    applyBlueHeaderStyle(XLSX, sheet, 0, 0, 4);
   }
   sheet['!cols'] = [{ wch: 16 }, { wch: 20 }, { wch: 36 }, { wch: 16 }, { wch: 18 }];
 
   return sheet;
 };
 
-const buildNominaSheet = (data: ExportReporteData): XLSX.WorkSheet => {
+const buildNominaSheet = (XLSX: XlsxModule, data: ExportReporteData): any => {
   const rows = data.nomina.map((row) => ({
     Colaborador: row.colaborador,
     Sucursal: row.sucursal ?? 'Sin sucursal',
@@ -232,14 +244,14 @@ const buildNominaSheet = (data: ExportReporteData): XLSX.WorkSheet => {
     header: ['Colaborador', 'Sucursal', 'Puesto', 'Área', 'Venta Registrada', 'Salario Base', '% Meta', '% Comisión', 'Comisión Ganada', 'Bono Meta', 'Retención IGSS', 'Líquido a Pagar'],
   });
   if (rows.length > 0) {
-    applyBlueHeaderStyle(sheet, 0, 0, 11);
+    applyBlueHeaderStyle(XLSX, sheet, 0, 0, 11);
   }
   sheet['!cols'] = [{ wch: 22 }, { wch: 18 }, { wch: 18 }, { wch: 18 }, { wch: 18 }, { wch: 16 }, { wch: 12 }, { wch: 12 }, { wch: 18 }, { wch: 14 }, { wch: 16 }, { wch: 18 }];
 
   return sheet;
 };
 
-const buildConciliacionSheet = (data: ExportReporteData): XLSX.WorkSheet => {
+const buildConciliacionSheet = (XLSX: XlsxModule, data: ExportReporteData): any => {
   const rows = (data.conciliacion ?? []).map((row) => ({
     Sucursal: row.sucursal,
     Periodo: row.periodo,
@@ -253,26 +265,28 @@ const buildConciliacionSheet = (data: ExportReporteData): XLSX.WorkSheet => {
     header: ['Sucursal', 'Periodo', 'Ventas Sistema', 'Depositado Banco', 'Diferencia', 'Detalle Boletas'],
   });
   if (rows.length > 0) {
-    applyBlueHeaderStyle(sheet, 0, 0, 5);
+    applyBlueHeaderStyle(XLSX, sheet, 0, 0, 5);
   }
   sheet['!cols'] = [{ wch: 20 }, { wch: 18 }, { wch: 20 }, { wch: 20 }, { wch: 18 }, { wch: 46 }];
 
   return sheet;
 };
 
-export const exportarReporteExcel = (data: ExportReporteData): void => {
+export const exportarReporteExcel = async (data: ExportReporteData): Promise<void> => {
+  const XLSX = await loadXlsx();
   const workbook = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(workbook, buildResumenSheet(data), 'Resumen Ejecutivo');
-  XLSX.utils.book_append_sheet(workbook, buildVentasSheet(data), 'Ventas por Farmacia');
-  XLSX.utils.book_append_sheet(workbook, buildGastosSheet(data), 'Gastos Operativos');
-  XLSX.utils.book_append_sheet(workbook, buildNominaSheet(data), 'Nómina y Comisiones');
-  XLSX.utils.book_append_sheet(workbook, buildConciliacionSheet(data), 'Conciliación Bancaria');
+  XLSX.utils.book_append_sheet(workbook, buildResumenSheet(XLSX, data), 'Resumen Ejecutivo');
+  XLSX.utils.book_append_sheet(workbook, buildVentasSheet(XLSX, data), 'Ventas por Farmacia');
+  XLSX.utils.book_append_sheet(workbook, buildGastosSheet(XLSX, data), 'Gastos Operativos');
+  XLSX.utils.book_append_sheet(workbook, buildNominaSheet(XLSX, data), 'Nómina y Comisiones');
+  XLSX.utils.book_append_sheet(workbook, buildConciliacionSheet(XLSX, data), 'Conciliación Bancaria');
 
   const filename = `Reporte_Financiero_Farmacias_${getCurrentDateStamp()}.xlsx`;
   XLSX.writeFile(workbook, filename);
 };
 
-export const exportarReporteRedistribucionExcel = (data: RedistribucionExportData): void => {
+export const exportarReporteRedistribucionExcel = async (data: RedistribucionExportData): Promise<void> => {
+  const XLSX = await loadXlsx();
   const workbook = XLSX.utils.book_new();
 
   const resumenRows = [
@@ -291,25 +305,25 @@ export const exportarReporteRedistribucionExcel = (data: RedistribucionExportDat
   ];
 
   const summarySheet = XLSX.utils.aoa_to_sheet(resumenRows);
-  applyBlueHeaderStyle(summarySheet, 0, 0, 1);
+  applyBlueHeaderStyle(XLSX, summarySheet, 0, 0, 1);
   summarySheet['!cols'] = [{ wch: 34 }, { wch: 24 }];
   XLSX.utils.book_append_sheet(workbook, summarySheet, 'Redistribución');
 
   const salarioRows = data.salarios.map((item) => ({ Concepto: item.concepto, Monto: formatCurrency(item.total) }));
   const salarioSheet = XLSX.utils.json_to_sheet(salarioRows, { header: ['Concepto', 'Monto'] });
-  if (salarioRows.length > 0) applyBlueHeaderStyle(salarioSheet, 0, 0, 1);
+  if (salarioRows.length > 0) applyBlueHeaderStyle(XLSX, salarioSheet, 0, 0, 1);
   salarioSheet['!cols'] = [{ wch: 30 }, { wch: 20 }];
   XLSX.utils.book_append_sheet(workbook, salarioSheet, 'Salarios');
 
   const gastosRows = data.gastosFijos.map((item) => ({ Concepto: item.concepto, Monto: formatCurrency(item.total) }));
   const gastosSheet = XLSX.utils.json_to_sheet(gastosRows, { header: ['Concepto', 'Monto'] });
-  if (gastosRows.length > 0) applyBlueHeaderStyle(gastosSheet, 0, 0, 1);
+  if (gastosRows.length > 0) applyBlueHeaderStyle(XLSX, gastosSheet, 0, 0, 1);
   gastosSheet['!cols'] = [{ wch: 30 }, { wch: 20 }];
   XLSX.utils.book_append_sheet(workbook, gastosSheet, 'Gastos Fijos');
 
   const sociosRows = data.socios.map((item) => ({ Socio: item.nombre, Monto: formatCurrency(item.monto), '% Participación': `${item.porcentaje.toFixed(2)}%` }));
   const sociosSheet = XLSX.utils.json_to_sheet(sociosRows, { header: ['Socio', 'Monto', '% Participación'] });
-  if (sociosRows.length > 0) applyBlueHeaderStyle(sociosSheet, 0, 0, 2);
+  if (sociosRows.length > 0) applyBlueHeaderStyle(XLSX, sociosSheet, 0, 0, 2);
   sociosSheet['!cols'] = [{ wch: 22 }, { wch: 20 }, { wch: 18 }];
   XLSX.utils.book_append_sheet(workbook, sociosSheet, 'Directivos');
 
@@ -317,7 +331,8 @@ export const exportarReporteRedistribucionExcel = (data: RedistribucionExportDat
   XLSX.writeFile(workbook, filename);
 };
 
-export const exportarReporteRedistribucionPDF = (data: RedistribucionExportData): void => {
+export const exportarReporteRedistribucionPDF = async (data: RedistribucionExportData): Promise<void> => {
+  const { jsPDF, autoTable } = await loadPdfModules();
   const doc = new jsPDF('p', 'mm', 'a4');
   const pageWidth = doc.internal.pageSize.getWidth();
 
@@ -352,7 +367,7 @@ export const exportarReporteRedistribucionPDF = (data: RedistribucionExportData)
     headStyles: { fillColor: [30, 64, 175], textColor: [255, 255, 255], fontStyle: 'bold' },
   });
 
-  const y1 = (doc as jsPDF & { lastAutoTable?: { finalY?: number } }).lastAutoTable?.finalY ?? 46;
+  const y1 = (doc as PdfDoc & { lastAutoTable?: { finalY?: number } }).lastAutoTable?.finalY ?? 46;
 
   autoTable(doc, {
     startY: y1 + 10,
@@ -363,7 +378,7 @@ export const exportarReporteRedistribucionPDF = (data: RedistribucionExportData)
     headStyles: { fillColor: [249, 115, 22], textColor: [255, 255, 255], fontStyle: 'bold' },
   });
 
-  const y2 = (doc as jsPDF & { lastAutoTable?: { finalY?: number } }).lastAutoTable?.finalY ?? y1;
+  const y2 = (doc as PdfDoc & { lastAutoTable?: { finalY?: number } }).lastAutoTable?.finalY ?? y1;
 
   autoTable(doc, {
     startY: y2 + 10,
@@ -374,7 +389,7 @@ export const exportarReporteRedistribucionPDF = (data: RedistribucionExportData)
     headStyles: { fillColor: [30, 64, 175], textColor: [255, 255, 255], fontStyle: 'bold' },
   });
 
-  const y3 = (doc as jsPDF & { lastAutoTable?: { finalY?: number } }).lastAutoTable?.finalY ?? y2;
+  const y3 = (doc as PdfDoc & { lastAutoTable?: { finalY?: number } }).lastAutoTable?.finalY ?? y2;
 
   autoTable(doc, {
     startY: y3 + 10,
@@ -388,7 +403,8 @@ export const exportarReporteRedistribucionPDF = (data: RedistribucionExportData)
   doc.save(`Reporte_Redistribucion_${getCurrentDateStamp()}.pdf`);
 };
 
-export const exportarCierreMensualExcel = (data: CierreMensualExportData): void => {
+export const exportarCierreMensualExcel = async (data: CierreMensualExportData): Promise<void> => {
+  const XLSX = await loadXlsx();
   const workbook = XLSX.utils.book_new();
 
   const summaryRows = [
@@ -405,25 +421,25 @@ export const exportarCierreMensualExcel = (data: CierreMensualExportData): void 
   ];
 
   const summarySheet = XLSX.utils.aoa_to_sheet(summaryRows);
-  applyBlueHeaderStyle(summarySheet, 0, 0, 1);
+  applyBlueHeaderStyle(XLSX, summarySheet, 0, 0, 1);
   summarySheet['!cols'] = [{ wch: 32 }, { wch: 24 }];
   XLSX.utils.book_append_sheet(workbook, summarySheet, 'Cierre Mensual');
 
   const salarioRows = data.salarios.map((item) => ({ Concepto: item.concepto, Monto: formatCurrency(item.total) }));
   const salarioSheet = XLSX.utils.json_to_sheet(salarioRows, { header: ['Concepto', 'Monto'] });
-  if (salarioRows.length > 0) applyBlueHeaderStyle(salarioSheet, 0, 0, 1);
+  if (salarioRows.length > 0) applyBlueHeaderStyle(XLSX, salarioSheet, 0, 0, 1);
   salarioSheet['!cols'] = [{ wch: 28 }, { wch: 18 }];
   XLSX.utils.book_append_sheet(workbook, salarioSheet, 'Salarios');
 
   const gastoRows = data.gastosOperativos.map((item) => ({ Concepto: item.concepto, Monto: formatCurrency(item.total) }));
   const gastoSheet = XLSX.utils.json_to_sheet(gastoRows, { header: ['Concepto', 'Monto'] });
-  if (gastoRows.length > 0) applyBlueHeaderStyle(gastoSheet, 0, 0, 1);
+  if (gastoRows.length > 0) applyBlueHeaderStyle(XLSX, gastoSheet, 0, 0, 1);
   gastoSheet['!cols'] = [{ wch: 28 }, { wch: 18 }];
   XLSX.utils.book_append_sheet(workbook, gastoSheet, 'Gastos Operativos');
 
   const directivoRows = data.directivos.map((item) => ({ Socio: item.nombre, Monto: formatCurrency(item.monto) }));
   const directivoSheet = XLSX.utils.json_to_sheet(directivoRows, { header: ['Socio', 'Monto'] });
-  if (directivoRows.length > 0) applyBlueHeaderStyle(directivoSheet, 0, 0, 1);
+  if (directivoRows.length > 0) applyBlueHeaderStyle(XLSX, directivoSheet, 0, 0, 1);
   directivoSheet['!cols'] = [{ wch: 20 }, { wch: 18 }];
   XLSX.utils.book_append_sheet(workbook, directivoSheet, 'Bonificaciones');
 
@@ -431,7 +447,8 @@ export const exportarCierreMensualExcel = (data: CierreMensualExportData): void 
   XLSX.writeFile(workbook, filename);
 };
 
-export const exportarCierreMensualPDF = (data: CierreMensualExportData): void => {
+export const exportarCierreMensualPDF = async (data: CierreMensualExportData): Promise<void> => {
+  const { jsPDF, autoTable } = await loadPdfModules();
   const doc = new jsPDF('p', 'mm', 'a4');
   const pageWidth = doc.internal.pageSize.getWidth();
 
@@ -466,7 +483,7 @@ export const exportarCierreMensualPDF = (data: CierreMensualExportData): void =>
     headStyles: { fillColor: [30, 64, 175], textColor: [255, 255, 255], fontStyle: 'bold' },
   });
 
-  const y1 = (doc as jsPDF & { lastAutoTable?: { finalY?: number } }).lastAutoTable?.finalY ?? 46;
+  const y1 = (doc as PdfDoc & { lastAutoTable?: { finalY?: number } }).lastAutoTable?.finalY ?? 46;
 
   autoTable(doc, {
     startY: y1 + 10,
@@ -477,7 +494,7 @@ export const exportarCierreMensualPDF = (data: CierreMensualExportData): void =>
     headStyles: { fillColor: [249, 115, 22], textColor: [255, 255, 255], fontStyle: 'bold' },
   });
 
-  const y2 = (doc as jsPDF & { lastAutoTable?: { finalY?: number } }).lastAutoTable?.finalY ?? y1;
+  const y2 = (doc as PdfDoc & { lastAutoTable?: { finalY?: number } }).lastAutoTable?.finalY ?? y1;
 
   autoTable(doc, {
     startY: y2 + 10,
@@ -488,7 +505,7 @@ export const exportarCierreMensualPDF = (data: CierreMensualExportData): void =>
     headStyles: { fillColor: [15, 118, 110], textColor: [255, 255, 255], fontStyle: 'bold' },
   });
 
-  const y3 = (doc as jsPDF & { lastAutoTable?: { finalY?: number } }).lastAutoTable?.finalY ?? y2;
+  const y3 = (doc as PdfDoc & { lastAutoTable?: { finalY?: number } }).lastAutoTable?.finalY ?? y2;
 
   autoTable(doc, {
     startY: y3 + 10,
@@ -502,8 +519,8 @@ export const exportarCierreMensualPDF = (data: CierreMensualExportData): void =>
   doc.save(`Cierre_Mensual_${getCurrentDateStamp()}.pdf`);
 };
 
-const addSummaryTable = (doc: jsPDF, rows: [string, string][], startY: number) => {
-  autoTable(doc, {
+const addSummaryTable = (doc: PdfDoc, autoTableFn: (doc: PdfDoc, options: Record<string, unknown>) => void, rows: [string, string][], startY: number) => {
+  autoTableFn(doc, {
     startY,
     head: [['Indicador', 'Valor']],
     body: rows,
@@ -514,7 +531,8 @@ const addSummaryTable = (doc: jsPDF, rows: [string, string][], startY: number) =
   });
 };
 
-export const exportarReportePDF = (data: ExportReporteData): void => {
+export const exportarReportePDF = async (data: ExportReporteData): Promise<void> => {
+  const { jsPDF, autoTable } = await loadPdfModules();
   const doc = new jsPDF('p', 'mm', 'a4');
   const pageWidth = doc.internal.pageSize.getWidth();
 
@@ -541,9 +559,9 @@ export const exportarReportePDF = (data: ExportReporteData): void => {
     ['Diagnóstico', data.resumen.cumplimiento],
   ];
 
-  addSummaryTable(doc, summaryRows, 58);
+  addSummaryTable(doc, autoTable, summaryRows, 58);
 
-  const ventasTableY = (doc as jsPDF & { lastAutoTable?: { finalY?: number } }).lastAutoTable?.finalY ?? 58;
+  const ventasTableY = (doc as PdfDoc & { lastAutoTable?: { finalY?: number } }).lastAutoTable?.finalY ?? 58;
 
   autoTable(doc, {
     startY: ventasTableY + 12,
@@ -561,7 +579,7 @@ export const exportarReportePDF = (data: ExportReporteData): void => {
     headStyles: { fillColor: [30, 64, 175], textColor: [255, 255, 255], fontStyle: 'bold' },
   });
 
-  const ventasLastY = (doc as jsPDF & { lastAutoTable?: { finalY?: number } }).lastAutoTable?.finalY ?? 58;
+  const ventasLastY = (doc as PdfDoc & { lastAutoTable?: { finalY?: number } }).lastAutoTable?.finalY ?? 58;
 
   autoTable(doc, {
     startY: ventasLastY + 10,
@@ -591,7 +609,7 @@ export const exportarReportePDF = (data: ExportReporteData): void => {
     },
   });
 
-  const nominaLastY = (doc as jsPDF & { lastAutoTable?: { finalY?: number } }).lastAutoTable?.finalY ?? ventasLastY;
+  const nominaLastY = (doc as PdfDoc & { lastAutoTable?: { finalY?: number } }).lastAutoTable?.finalY ?? ventasLastY;
 
   autoTable(doc, {
     startY: nominaLastY + 8,
@@ -607,7 +625,7 @@ export const exportarReportePDF = (data: ExportReporteData): void => {
 
   const conciliacionProduced = (data.conciliacion ?? []).length > 0;
   if (conciliacionProduced) {
-    const concY = (doc as jsPDF & { lastAutoTable?: { finalY?: number } }).lastAutoTable?.finalY ?? nominaLastY;
+    const concY = (doc as PdfDoc & { lastAutoTable?: { finalY?: number } }).lastAutoTable?.finalY ?? nominaLastY;
     autoTable(doc, {
       startY: concY + 10,
       head: [['Sucursal', 'Periodo', 'Ventas', 'Depositado', 'Diferencia']],

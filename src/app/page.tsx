@@ -2,6 +2,7 @@
 
 export const dynamic = 'force-dynamic';
 
+import NextDynamic from 'next/dynamic';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Ban,
@@ -20,17 +21,18 @@ import {
   X,
 } from 'lucide-react';
 import ModalAnularRegistro from '@/components/ModalAnularRegistro';
-import ModalConfigurarMetas from '@/components/ModalConfigurarMetas';
-import ModalNuevaSucursal from '@/components/ModalNuevaSucursal';
-import ModalNuevaVenta from '@/components/ModalNuevaVenta';
 import ModalNuevoGasto from '@/components/ModalNuevoGasto';
 import ModalRegistrarDeposito from '@/components/ModalRegistrarDeposito';
-import PanelLateralCRM from '@/components/PanelLateralCRM';
 import ReporteCierreMensual from '@/components/ReporteCierreMensual';
 import ReporteRedistribucion from '@/components/ReporteRedistribucion';
 import Sidebar, { type SectionKey } from '@/components/Sidebar';
 import { exportarReporteExcel, exportarReportePDF, type ExportReporteData } from '@/lib/exportUtils';
 import { supabase } from '@/lib/supabase';
+
+const ModalNuevaVentaDynamic = NextDynamic(() => import('@/components/ModalNuevaVenta'), { ssr: false });
+const ModalNuevaSucursalDynamic = NextDynamic(() => import('@/components/ModalNuevaSucursal'), { ssr: false });
+const ModalConfigurarMetasDynamic = NextDynamic(() => import('@/components/ModalConfigurarMetas'), { ssr: false });
+const PanelLateralCRMDynamic = NextDynamic(() => import('@/components/PanelLateralCRM'), { ssr: false });
 
 type Sucursal = {
   id: string | number;
@@ -296,7 +298,9 @@ export default function Home() {
       try {
         const { data: depData, error: depError } = await supabase
           .from('depositos_remesas')
-          .select('*');
+          .select(
+            'id, sucursal_id, banco_receptor, no_boleta, fecha_deposito, fecha_inicio_corte, fecha_fin_corte, monto_depositado, notas',
+          );
 
         if (!depError && depData) {
           depositosData = depData as DepositoRemesa[];
@@ -408,8 +412,8 @@ export default function Home() {
     });
   }, [gastos, selectedBranch, selectedMonth, sucursales, tableSearch, tableStatusFilter, fechaDesde, fechaHasta]);
 
-  const ventasActivas = filteredVentas.filter((venta) => !venta.anulado);
-  const gastosActivos = filteredGastos.filter((gasto) => !gasto.anulado);
+  const ventasActivas = useMemo(() => filteredVentas.filter((venta) => !venta.anulado), [filteredVentas]);
+  const gastosActivos = useMemo(() => filteredGastos.filter((gasto) => !gasto.anulado), [filteredGastos]);
 
   const nominaRows = useMemo(() => {
     const selectedMes = selectedMonth === 'all' ? currentDateInfo.month : Number(selectedMonth || currentDateInfo.month);
@@ -548,17 +552,35 @@ export default function Home() {
       : rows.filter((row) => row.sucursalId === String(selectedBranch));
   }, [currentDateInfo.year, depositosRemesas, selectedBranch, selectedMonth, sucursales, ventas]);
 
-  const totalVentaEsperada = conciliacionRows.reduce((sum, row) => sum + row.totalRecaudado, 0);
-  const totalDepositadoVerificado = conciliacionRows.reduce((sum, row) => sum + row.totalDepositado, 0);
-  const saldoNetoDescuadrado = conciliacionRows.reduce((sum, row) => sum + row.diferencia, 0);
+  const totalVentaEsperada = useMemo(
+    () => conciliacionRows.reduce((sum, row) => sum + row.totalRecaudado, 0),
+    [conciliacionRows],
+  );
+  const totalDepositadoVerificado = useMemo(
+    () => conciliacionRows.reduce((sum, row) => sum + row.totalDepositado, 0),
+    [conciliacionRows],
+  );
+  const saldoNetoDescuadrado = useMemo(
+    () => conciliacionRows.reduce((sum, row) => sum + row.diferencia, 0),
+    [conciliacionRows],
+  );
 
-  const totalVentas = ventasActivas.reduce((sum, venta) => sum + Number(venta.monto_bruto ?? 0), 0);
-  const totalInversion = ventasActivas.reduce((sum, venta) => sum + Number(venta.costo_inversion ?? 0), 0);
-  const gananciaBruta = totalVentas - totalInversion;
-  const totalGastosGlobales = gastosActivos.reduce((sum, gasto) => sum + Number(gasto.monto ?? 0), 0);
+  const totalVentas = useMemo(
+    () => ventasActivas.reduce((sum, venta) => sum + Number(venta.monto_bruto ?? 0), 0),
+    [ventasActivas],
+  );
+  const totalInversion = useMemo(
+    () => ventasActivas.reduce((sum, venta) => sum + Number(venta.costo_inversion ?? 0), 0),
+    [ventasActivas],
+  );
+  const gananciaBruta = useMemo(() => totalVentas - totalInversion, [totalInversion, totalVentas]);
+  const totalGastosGlobales = useMemo(
+    () => gastosActivos.reduce((sum, gasto) => sum + Number(gasto.monto ?? 0), 0),
+    [gastosActivos],
+  );
   const comisiones = 0;
   const margen = totalVentas - totalGastosGlobales;
-  const rendimiento = totalVentas > 0 ? (gananciaBruta / totalVentas) * 100 : 0;
+  const rendimiento = useMemo(() => (totalVentas > 0 ? (gananciaBruta / totalVentas) * 100 : 0), [gananciaBruta, totalVentas]);
 
   const formatearFechaCorta = (value?: string) => {
     if (!value) return 'Sin fecha';
@@ -1503,7 +1525,7 @@ export default function Home() {
       </div>
     </div>
 
-      <PanelLateralCRM
+      <PanelLateralCRMDynamic
         isOpen={crmAbierto}
         onClose={() => setCrmAbierto(false)}
         sucursales={sucursales}
@@ -1553,7 +1575,7 @@ export default function Home() {
         </div>
       )}
 
-      <ModalNuevaVenta
+      <ModalNuevaVentaDynamic
         isOpen={modalVentaAbierto}
         onClose={() => setModalVentaAbierto(false)}
         onSuccess={() => {
@@ -1572,7 +1594,7 @@ export default function Home() {
         sucursales={sucursales}
       />
 
-      <ModalConfigurarMetas
+      <ModalConfigurarMetasDynamic
         isOpen={modalMetasAbierto}
         onClose={() => setModalMetasAbierto(false)}
         onSaved={() => {
@@ -1581,7 +1603,7 @@ export default function Home() {
         sucursales={sucursales}
       />
 
-      <ModalNuevaSucursal
+      <ModalNuevaSucursalDynamic
         isOpen={modalSucursalAbierto}
         onClose={() => setModalSucursalAbierto(false)}
         onSuccess={() => {
