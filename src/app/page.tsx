@@ -1,5 +1,7 @@
 'use client';
 
+export const dynamic = 'force-dynamic';
+
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Ban,
@@ -1064,8 +1066,8 @@ export default function Home() {
 
         <section className="mt-6 overflow-hidden rounded-2xl border border-slate-800 bg-slate-900/60 shadow-xl shadow-slate-950/30 backdrop-blur">
           <div className="border-b border-slate-800 bg-slate-950/60 p-3 sm:p-4">
-            <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
-              <div className="inline-flex w-full rounded-xl border border-slate-700 bg-slate-900 p-1 xl:max-w-md">
+            <div className="mb-6 flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+              <div className="inline-flex max-w-full items-center gap-1.5 overflow-x-auto rounded-xl border border-slate-800 bg-slate-900/90 p-1.5">
                 {[
                   { key: 'ventas', label: 'Ventas y Recaudaciones', count: filteredVentas.length },
                   { key: 'gastos', label: 'Gastos Operativos', count: filteredGastos.length },
@@ -1078,16 +1080,16 @@ export default function Home() {
                       key={tab.key}
                       type="button"
                       onClick={() => setActiveTable(tab.key as 'ventas' | 'gastos' | 'nomina' | 'conciliacion')}
-                      className={`flex w-full items-center justify-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition ${
+                      className={`whitespace-nowrap flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium transition-all ${
                         isActive
-                          ? 'bg-orange-500/15 text-orange-200 shadow-inner shadow-orange-500/10'
-                          : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+                          ? 'bg-orange-600/90 text-white font-semibold shadow-sm shadow-orange-950/40'
+                          : 'text-slate-400 hover:bg-slate-800/60 hover:text-white'
                       }`}
                     >
                       <span>{tab.label}</span>
                       <span
-                        className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${
-                          isActive ? 'bg-orange-500/20 text-orange-200' : 'bg-slate-800 text-slate-300'
+                        className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
+                          isActive ? 'bg-black/30 text-white' : 'bg-slate-800 text-slate-300'
                         }`}
                       >
                         {tab.count}
@@ -1097,7 +1099,7 @@ export default function Home() {
                 })}
               </div>
 
-              <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center xl:max-w-xl xl:justify-end">
+              <div className="flex w-full items-center gap-3 xl:w-auto">
                 {activeTable === 'conciliacion' ? (
                   <button
                     type="button"
@@ -1120,13 +1122,13 @@ export default function Home() {
                             ? 'Buscar categoría, descripción o sucursal...'
                             : 'Buscar colaborador, sucursal o área...'
                       }
-                      className="w-full rounded-xl border border-slate-700 bg-slate-900 px-3 py-2.5 text-sm text-white placeholder:text-slate-400 focus:border-blue-400 focus:outline-none sm:max-w-xs"
+                      className="relative flex-1 rounded-lg border border-slate-800 bg-slate-900 px-3.5 py-2 text-sm text-slate-200 placeholder:text-slate-500 focus:border-blue-500 focus:outline-none xl:w-72"
                     />
 
                     <select
                       value={tableStatusFilter}
                       onChange={(event) => setTableStatusFilter(event.target.value as 'all' | 'active' | 'anulados')}
-                      className="rounded-xl border border-slate-700 bg-slate-900 px-3 py-2.5 text-sm text-slate-200 outline-none transition focus:border-blue-400"
+                      className="rounded-lg border border-slate-800 bg-slate-900 px-3 py-2 text-sm text-slate-300 focus:border-blue-500 focus:outline-none"
                     >
                       <option value="all">Todos</option>
                       <option value="active">Solo activos</option>
