@@ -66,6 +66,24 @@ export type ExportReporteData = {
   conciliacion?: ExportConciliacionRow[];
 };
 
+export type RedistribucionExportData = {
+  fechaDesde: string;
+  fechaHasta: string;
+  totalVentas: number;
+  porcentajeUtilidad: number;
+  utilidades: number;
+  inversion: number;
+  totalGastosEmpresariales: number;
+  utilidadRestante: number;
+  totalPorcentajes: number;
+  ahorroPeriodo: number;
+  ahorroAcumuladoAnterior: number;
+  granTotalAhorroHistorico: number;
+  salarios: Array<{ concepto: string; total: number }>;
+  gastosFijos: Array<{ concepto: string; total: number }>;
+  socios: Array<{ nombre: string; monto: number; porcentaje: number }>;
+};
+
 const formatCurrency = (value: number): string =>
   new Intl.NumberFormat('es-GT', {
     style: 'currency',
@@ -234,6 +252,122 @@ export const exportarReporteExcel = (data: ExportReporteData): void => {
 
   const filename = `Reporte_Financiero_Farmacias_${getCurrentDateStamp()}.xlsx`;
   XLSX.writeFile(workbook, filename);
+};
+
+export const exportarReporteRedistribucionExcel = (data: RedistribucionExportData): void => {
+  const workbook = XLSX.utils.book_new();
+
+  const resumenRows = [
+    ['Reporte de Redistribución Financiera'],
+    ['Rango analizado', `${data.fechaDesde} al ${data.fechaHasta}`],
+    ['Total Ventas', formatCurrency(data.totalVentas)],
+    ['Porcentaje de utilidad', `${data.porcentajeUtilidad.toFixed(4)}%`],
+    ['Utilidades', formatCurrency(data.utilidades)],
+    ['Inversión mercadería', formatCurrency(data.inversion)],
+    ['Gastos empresariales', formatCurrency(data.totalGastosEmpresariales)],
+    ['Utilidad restante', formatCurrency(data.utilidadRestante)],
+    ['Total porcentajes', formatCurrency(data.totalPorcentajes)],
+    ['Ahorro del período', formatCurrency(data.ahorroPeriodo)],
+    ['Ahorro acumulado anterior', formatCurrency(data.ahorroAcumuladoAnterior)],
+    ['Gran total ahorro histórico', formatCurrency(data.granTotalAhorroHistorico)],
+  ];
+
+  const summarySheet = XLSX.utils.aoa_to_sheet(resumenRows);
+  applyBlueHeaderStyle(summarySheet, 0, 0, 1);
+  summarySheet['!cols'] = [{ wch: 34 }, { wch: 24 }];
+  XLSX.utils.book_append_sheet(workbook, summarySheet, 'Redistribución');
+
+  const salarioRows = data.salarios.map((item) => ({ Concepto: item.concepto, Monto: formatCurrency(item.total) }));
+  const salarioSheet = XLSX.utils.json_to_sheet(salarioRows, { header: ['Concepto', 'Monto'] });
+  if (salarioRows.length > 0) applyBlueHeaderStyle(salarioSheet, 0, 0, 1);
+  salarioSheet['!cols'] = [{ wch: 30 }, { wch: 20 }];
+  XLSX.utils.book_append_sheet(workbook, salarioSheet, 'Salarios');
+
+  const gastosRows = data.gastosFijos.map((item) => ({ Concepto: item.concepto, Monto: formatCurrency(item.total) }));
+  const gastosSheet = XLSX.utils.json_to_sheet(gastosRows, { header: ['Concepto', 'Monto'] });
+  if (gastosRows.length > 0) applyBlueHeaderStyle(gastosSheet, 0, 0, 1);
+  gastosSheet['!cols'] = [{ wch: 30 }, { wch: 20 }];
+  XLSX.utils.book_append_sheet(workbook, gastosSheet, 'Gastos Fijos');
+
+  const sociosRows = data.socios.map((item) => ({ Socio: item.nombre, Monto: formatCurrency(item.monto), '% Participación': `${item.porcentaje.toFixed(2)}%` }));
+  const sociosSheet = XLSX.utils.json_to_sheet(sociosRows, { header: ['Socio', 'Monto', '% Participación'] });
+  if (sociosRows.length > 0) applyBlueHeaderStyle(sociosSheet, 0, 0, 2);
+  sociosSheet['!cols'] = [{ wch: 22 }, { wch: 20 }, { wch: 18 }];
+  XLSX.utils.book_append_sheet(workbook, sociosSheet, 'Directivos');
+
+  const filename = `Reporte_Redistribucion_${getCurrentDateStamp()}.xlsx`;
+  XLSX.writeFile(workbook, filename);
+};
+
+export const exportarReporteRedistribucionPDF = (data: RedistribucionExportData): void => {
+  const doc = new jsPDF('p', 'mm', 'a4');
+  const pageWidth = doc.internal.pageSize.getWidth();
+
+  doc.setFillColor(15, 23, 42);
+  doc.rect(0, 0, pageWidth, 26, 'F');
+  doc.setTextColor(255, 255, 255);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(15);
+  doc.text('REPORTE DE REDISTRIBUCIÓN FINANCIERA', pageWidth / 2, 16, { align: 'center' });
+
+  doc.setTextColor(15, 23, 42);
+  doc.setFontSize(10);
+  doc.text(`Rango analizado: ${data.fechaDesde} al ${data.fechaHasta}`, 14, 38);
+
+  const summaryRows: [string, string][] = [
+    ['Total Ventas', formatCurrency(data.totalVentas)],
+    ['Utilidades', formatCurrency(data.utilidades)],
+    ['Inversión', formatCurrency(data.inversion)],
+    ['Gastos empresariales', formatCurrency(data.totalGastosEmpresariales)],
+    ['Utilidad restante', formatCurrency(data.utilidadRestante)],
+    ['Total porcentajes', formatCurrency(data.totalPorcentajes)],
+    ['Ahorro del período', formatCurrency(data.ahorroPeriodo)],
+    ['Gran total ahorro histórico', formatCurrency(data.granTotalAhorroHistorico)],
+  ];
+
+  autoTable(doc, {
+    startY: 46,
+    head: [['Indicador', 'Valor']],
+    body: summaryRows,
+    theme: 'grid',
+    styles: { fontSize: 9, cellPadding: 2 },
+    headStyles: { fillColor: [30, 64, 175], textColor: [255, 255, 255], fontStyle: 'bold' },
+  });
+
+  const y1 = (doc as jsPDF & { lastAutoTable?: { finalY?: number } }).lastAutoTable?.finalY ?? 46;
+
+  autoTable(doc, {
+    startY: y1 + 10,
+    head: [['Concepto', 'Monto']],
+    body: data.salarios.map((item) => [item.concepto, formatCurrency(item.total)]),
+    theme: 'grid',
+    styles: { fontSize: 8, cellPadding: 2 },
+    headStyles: { fillColor: [249, 115, 22], textColor: [255, 255, 255], fontStyle: 'bold' },
+  });
+
+  const y2 = (doc as jsPDF & { lastAutoTable?: { finalY?: number } }).lastAutoTable?.finalY ?? y1;
+
+  autoTable(doc, {
+    startY: y2 + 10,
+    head: [['Gasto fijo', 'Monto']],
+    body: data.gastosFijos.map((item) => [item.concepto, formatCurrency(item.total)]),
+    theme: 'grid',
+    styles: { fontSize: 8, cellPadding: 2 },
+    headStyles: { fillColor: [30, 64, 175], textColor: [255, 255, 255], fontStyle: 'bold' },
+  });
+
+  const y3 = (doc as jsPDF & { lastAutoTable?: { finalY?: number } }).lastAutoTable?.finalY ?? y2;
+
+  autoTable(doc, {
+    startY: y3 + 10,
+    head: [['Socio', 'Monto', '%']],
+    body: data.socios.map((item) => [item.nombre, formatCurrency(item.monto), `${item.porcentaje.toFixed(2)}%`]),
+    theme: 'grid',
+    styles: { fontSize: 8, cellPadding: 2 },
+    headStyles: { fillColor: [15, 118, 110], textColor: [255, 255, 255], fontStyle: 'bold' },
+  });
+
+  doc.save(`Reporte_Redistribucion_${getCurrentDateStamp()}.pdf`);
 };
 
 const addSummaryTable = (doc: jsPDF, rows: [string, string][], startY: number) => {

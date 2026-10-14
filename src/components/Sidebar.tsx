@@ -12,7 +12,7 @@ import {
   X,
 } from 'lucide-react';
 
-export type SectionKey = 'dashboard' | 'crm' | 'nomina' | 'conciliacion';
+export type SectionKey = 'dashboard' | 'crm' | 'nomina' | 'conciliacion' | 'redistribucion';
 
 type SidebarProps = {
   activeSection: SectionKey;
@@ -29,6 +29,7 @@ const navigationItems: Array<{ key: SectionKey; label: string; description: stri
   { key: 'crm', label: 'Explorador CRM Farmacias', description: 'Auditoría por sucursal', icon: Search },
   { key: 'nomina', label: 'Nómina y Comisiones', description: 'Salarios y metas', icon: Receipt },
   { key: 'conciliacion', label: 'Conciliación Bancaria', description: 'Boletas y cuadres', icon: FileText },
+  { key: 'redistribucion', label: 'Reporte de Redistribución', description: 'Utilidades y cierre financiero', icon: FileText },
 ];
 
 export default function Sidebar({

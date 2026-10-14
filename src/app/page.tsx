@@ -26,6 +26,7 @@ import ModalNuevaVenta from '@/components/ModalNuevaVenta';
 import ModalNuevoGasto from '@/components/ModalNuevoGasto';
 import ModalRegistrarDeposito from '@/components/ModalRegistrarDeposito';
 import PanelLateralCRM from '@/components/PanelLateralCRM';
+import ReporteRedistribucion from '@/components/ReporteRedistribucion';
 import Sidebar, { type SectionKey } from '@/components/Sidebar';
 import { exportarReporteExcel, exportarReportePDF, type ExportReporteData } from '@/lib/exportUtils';
 import { supabase } from '@/lib/supabase';
@@ -834,6 +835,7 @@ export default function Home() {
     crm: 'Explorador CRM Farmacias',
     nomina: 'Nómina y Comisiones',
     conciliacion: 'Conciliación Bancaria',
+    redistribucion: 'Reporte de Redistribución y Cierre de Utilidades',
   };
 
   const handleSidebarSection = (section: SectionKey) => {
@@ -856,6 +858,11 @@ export default function Home() {
 
     if (section === 'conciliacion') {
       setActiveTable('conciliacion');
+      return;
+    }
+
+    if (section === 'redistribucion') {
+      setActiveTable('ventas');
     }
   };
 
@@ -1010,8 +1017,16 @@ export default function Home() {
         </header>
 
         <div className="mx-auto max-w-[1600px] px-4 py-6 sm:px-6 lg:px-8">
-
-        {isLoadingData && (
+          {activeSection === 'redistribucion' ? (
+            <ReporteRedistribucion
+              ventas={filteredVentas}
+              gastos={filteredGastos}
+              fechaDesde={fechaDesde}
+              fechaHasta={fechaHasta}
+            />
+          ) : (
+            <>
+              {isLoadingData && (
           <div className="mt-4 rounded-xl border border-slate-800 bg-slate-900/80 px-3 py-2 text-xs text-slate-300">
             Actualizando información del ERP...
           </div>
@@ -1469,6 +1484,8 @@ export default function Home() {
             )}
           </div>
         </section>
+            </>
+          )}
       </div>
     </div>
 
