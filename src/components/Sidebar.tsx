@@ -1,37 +1,33 @@
 'use client';
 
 import {
-  FileSpreadsheet,
-  FileText,
-  Landmark,
+  Banknote,
   LayoutGrid,
+  Landmark,
+  LibraryBig,
   Pill,
   Plus,
-  Receipt,
-  Search,
-  Store,
+  ReceiptText,
+  Scale,
   X,
 } from 'lucide-react';
 
-export type SectionKey = 'dashboard' | 'crm' | 'nomina' | 'conciliacion' | 'redistribucion' | 'cierreMensual';
+export type SectionKey = 'ventas' | 'planilla' | 'gastos' | 'consolidado' | 'conciliacion';
 
 type SidebarProps = {
   activeSection: SectionKey;
   isOpen: boolean;
   onClose: () => void;
   onSelectSection: (section: SectionKey) => void;
-  onQuickAction: (action: 'venta' | 'gasto' | 'farmacia') => void;
-  onExportExcel: () => void;
-  onExportPdf: () => void;
+  onQuickAction: (action: 'venta' | 'gasto') => void;
 };
 
 const navigationItems: Array<{ key: SectionKey; label: string; description: string; icon: typeof LayoutGrid }> = [
-  { key: 'dashboard', label: 'Dashboard Financiero', description: 'KPIs y tablas operativas', icon: LayoutGrid },
-  { key: 'crm', label: 'Explorador CRM Farmacias', description: 'Auditoría por sucursal', icon: Search },
-  { key: 'nomina', label: 'Nómina y Comisiones', description: 'Salarios y metas', icon: Receipt },
-  { key: 'conciliacion', label: 'Conciliación Bancaria', description: 'Boletas y cuadres', icon: FileText },
-  { key: 'redistribucion', label: 'Reporte de Redistribución', description: 'Utilidades y cierre financiero', icon: FileText },
-  { key: 'cierreMensual', label: 'Cierre Mensual y Ahorro', description: 'Bonificaciones y ahorro', icon: Landmark },
+  { key: 'ventas', label: 'Ventas y Recaudaciones', description: 'Núcleo de ventas por período', icon: LayoutGrid },
+  { key: 'planilla', label: 'Planilla y Bonificaciones', description: 'Cortes quincenales e IGSS', icon: ReceiptText },
+  { key: 'gastos', label: 'Gastos y Gastos Fijos', description: 'Registro con vigencias amplias', icon: LibraryBig },
+  { key: 'consolidado', label: 'Consolidado Mensual de Gastos', description: 'Regla del tercio y balance', icon: Scale },
+  { key: 'conciliacion', label: 'Conciliación Bancaria', description: 'Boletas y cuadres', icon: Banknote },
 ];
 
 export default function Sidebar({
@@ -40,8 +36,6 @@ export default function Sidebar({
   onClose,
   onSelectSection,
   onQuickAction,
-  onExportExcel,
-  onExportPdf,
 }: SidebarProps) {
   const handleSectionSelect = (section: SectionKey) => {
     onSelectSection(section);
@@ -89,7 +83,7 @@ export default function Sidebar({
               className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-orange-500 px-3 py-2.5 text-sm font-semibold text-white shadow-lg shadow-orange-900/30 transition hover:bg-orange-400"
             >
               <Plus className="h-4 w-4" />
-              + Venta / Recaudación
+              + Registrar Venta / Corte
             </button>
 
             <button
@@ -101,19 +95,7 @@ export default function Sidebar({
               className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-3 py-2.5 text-sm font-semibold text-white shadow-lg shadow-blue-900/30 transition hover:bg-blue-500"
             >
               <Plus className="h-4 w-4" />
-              + Gasto Operativo
-            </button>
-
-            <button
-              type="button"
-              onClick={() => {
-                onQuickAction('farmacia');
-                onClose();
-              }}
-              className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-slate-700 bg-slate-900 px-3 py-2.5 text-sm font-medium text-slate-200 transition hover:border-orange-400 hover:text-orange-300"
-            >
-              <Store className="h-4 w-4" />
-              + Nueva Farmacia
+              + Registrar Gasto
             </button>
           </div>
 
@@ -149,25 +131,8 @@ export default function Sidebar({
             })}
           </nav>
         </div>
-
-        <div className="space-y-3 border-t border-slate-800 pt-4">
-          <button
-            type="button"
-            onClick={onExportExcel}
-            className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-slate-700 bg-slate-900 px-3 py-2.5 text-sm font-medium text-slate-200 transition hover:border-blue-400 hover:text-blue-300"
-          >
-            <FileSpreadsheet className="h-4 w-4" />
-            Exportar Excel
-          </button>
-
-          <button
-            type="button"
-            onClick={onExportPdf}
-            className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-slate-700 bg-slate-900 px-3 py-2.5 text-sm font-medium text-slate-200 transition hover:border-orange-400 hover:text-orange-300"
-          >
-            <FileText className="h-4 w-4" />
-            Exportar PDF
-          </button>
+        <div className="border-t border-slate-800 pt-4 text-[11px] text-slate-500">
+          Motor contable ERP v2
         </div>
       </aside>
     </>

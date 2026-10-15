@@ -2,6 +2,7 @@
 
 import { Loader2, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { buildDescripcionConVigencia, CATEGORIAS_GASTO, normalizeCategoria, type CategoriaGasto } from '@/lib/contabilidad';
 import { supabase } from '@/lib/supabase';
 
 type Sucursal = {
@@ -16,19 +17,10 @@ type ModalNuevoGastoProps = {
   sucursales: Sucursal[];
 };
 
-const categoriasGasto = [
-  { value: 'renta', label: 'Renta' },
-  { value: 'luz', label: 'Luz' },
-  { value: 'basura', label: 'Basura' },
-  { value: 'regencia', label: 'Regencia' },
-  { value: 'seguros', label: 'Seguros' },
-  { value: 'reparacion_vehiculo', label: 'Reparación de vehículo' },
-  { value: 'igss_cuota', label: 'IGSS cuota' },
-  { value: 'mantenimiento_farmacia', label: 'Mantenimiento farmacia' },
-  { value: 'multa_sat', label: 'Multa SAT' },
-  { value: 'personal_externo', label: 'Personal externo' },
-  { value: 'otros', label: 'Otros' },
-] as const;
+const categoriasGasto = CATEGORIAS_GASTO.map((categoria) => ({
+  value: categoria,
+  label: categoria.replace(/_/g, ' '),
+}));
 
 const getToday = () => {
   if (typeof window === 'undefined') {
@@ -45,20 +37,28 @@ export default function ModalNuevoGasto({
   sucursales,
 }: ModalNuevoGastoProps) {
   const [esGeneral, setEsGeneral] = useState(false);
+  const [esRangoRecurrente, setEsRangoRecurrente] = useState(false);
+  const [prorratear, setProrratear] = useState(true);
   const [sucursalId, setSucursalId] = useState<string>('');
-  const [categoria, setCategoria] = useState<string>('renta');
+  const [categoria, setCategoria] = useState<CategoriaGasto>('RENTAS');
   const [descripcion, setDescripcion] = useState('');
   const [fechaGasto, setFechaGasto] = useState('');
+  const [fechaInicio, setFechaInicio] = useState('');
+  const [fechaFinVigencia, setFechaFinVigencia] = useState('');
   const [monto, setMonto] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
   const resetForm = () => {
     setEsGeneral(false);
+    setEsRangoRecurrente(false);
+    setProrratear(true);
     setSucursalId('');
-    setCategoria('renta');
+    setCategoria('RENTAS');
     setDescripcion('');
     setFechaGasto(getToday());
+    setFechaInicio(getToday());
+    setFechaFinVigencia(getToday());
     setMonto('');
     setError('');
   };
@@ -97,6 +97,18 @@ export default function ModalNuevoGasto({
       return;
     }
 
+    if (esRangoRecurrente) {
+      if (!fechaInicio || !fechaFinVigencia) {
+        setError('Define fecha de inicio y fecha de fin de vigencia.');
+        return;
+      }
+
+      if (new Date(`${fechaInicio}T00:00:00`) > new Date(`${fechaFinVigencia}T00:00:00`)) {
+        setError('La fecha fin de vigencia no puede ser menor a la fecha de inicio.');
+        return;
+      }
+    }
+
     setLoading(true);
     setError('');
 
@@ -106,17 +118,40 @@ export default function ModalNuevoGasto({
         throw new Error('Falta la sucursal válida para el gasto.');
       }
 
-      const { error: insertError } = await supabase.from('gastos').insert({
+      const categoriaNormalizada = normalizeCategoria(categoria);
+      const descripcionNormalizada = esRangoRecurrente
+        ? buildDescripcionConVigencia(descripcion.trim(), fechaInicio, fechaFinVigencia, prorratear)
+        : descripcion.trim();
+
+      const payloadBase = {
         sucursal_id: sucursalUuid,
-        categoria,
-        descripcion: descripcion.trim(),
+        categoria: categoriaNormalizada,
+        descripcion: descripcionNormalizada,
         fecha_gasto: fechaGasto,
         monto: montoNumero,
         es_gasto_general: esGeneral,
-      });
+      };
 
-      if (insertError) {
-        throw insertError;
+      if (esRangoRecurrente) {
+        const { error: insertExtendedError } = await supabase.from('gastos').insert({
+          ...payloadBase,
+          fecha_inicio: fechaInicio,
+          fecha_fin_vigencia: fechaFinVigencia,
+          es_rango_recurrente: true,
+          prorratear_en_rango: prorratear,
+        });
+
+        if (insertExtendedError) {
+          const { error: fallbackError } = await supabase.from('gastos').insert(payloadBase);
+          if (fallbackError) {
+            throw fallbackError;
+          }
+        }
+      } else {
+        const { error: insertError } = await supabase.from('gastos').insert(payloadBase);
+        if (insertError) {
+          throw insertError;
+        }
       }
 
       resetForm();
@@ -161,6 +196,16 @@ export default function ModalNuevoGasto({
             />
           </label>
 
+          <label className="flex items-center justify-between rounded-xl border border-slate-700 bg-slate-800 px-3 py-3 text-sm text-slate-200">
+            <span>¿Gasto de rango / recurrente?</span>
+            <input
+              type="checkbox"
+              checked={esRangoRecurrente}
+              onChange={(event) => setEsRangoRecurrente(event.target.checked)}
+              className="h-4 w-4 accent-blue-500"
+            />
+          </label>
+
           {!esGeneral && (
             <label className="space-y-2 text-sm text-slate-200">
               <span>Sucursal</span>
@@ -184,7 +229,7 @@ export default function ModalNuevoGasto({
               <span>Categoría</span>
               <select
                 value={categoria}
-                onChange={(event) => setCategoria(event.target.value)}
+                onChange={(event) => setCategoria(normalizeCategoria(event.target.value))}
                 className="w-full rounded-xl border border-slate-600 bg-slate-800 px-3 py-2.5 text-sm text-white outline-none transition focus:border-rose-400"
               >
                 {categoriasGasto.map((item) => (
@@ -216,6 +261,42 @@ export default function ModalNuevoGasto({
               placeholder="Ej. Pago de servicios, compra de insumos..."
             />
           </label>
+
+          {esRangoRecurrente && (
+            <>
+              <div className="grid gap-4 md:grid-cols-2">
+                <label className="space-y-2 text-sm text-slate-200">
+                  <span>Fecha inicio de vigencia</span>
+                  <input
+                    type="date"
+                    value={fechaInicio}
+                    onChange={(event) => setFechaInicio(event.target.value)}
+                    className="w-full rounded-xl border border-slate-600 bg-slate-800 px-3 py-2.5 text-sm text-white outline-none transition focus:border-blue-400"
+                  />
+                </label>
+
+                <label className="space-y-2 text-sm text-slate-200">
+                  <span>Fecha fin de vigencia</span>
+                  <input
+                    type="date"
+                    value={fechaFinVigencia}
+                    onChange={(event) => setFechaFinVigencia(event.target.value)}
+                    className="w-full rounded-xl border border-slate-600 bg-slate-800 px-3 py-2.5 text-sm text-white outline-none transition focus:border-blue-400"
+                  />
+                </label>
+              </div>
+
+              <label className="flex items-center justify-between rounded-xl border border-slate-700 bg-slate-800 px-3 py-3 text-sm text-slate-200">
+                <span>Prorratear por traslape en cortes</span>
+                <input
+                  type="checkbox"
+                  checked={prorratear}
+                  onChange={(event) => setProrratear(event.target.checked)}
+                  className="h-4 w-4 accent-blue-500"
+                />
+              </label>
+            </>
+          )}
 
           <label className="space-y-2 text-sm text-slate-200">
             <span>Monto (Q)</span>

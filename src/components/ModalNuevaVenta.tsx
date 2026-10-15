@@ -19,7 +19,10 @@ type Empleado = {
 type BatchRow = {
   id: string;
   sucursalId: string;
-  montoBruto: string;
+  montoEfectivo: string;
+  montoTarjetaPos: string;
+  montoTransferencia: string;
+  montoTotal: string;
   notas: string;
   selected: boolean;
 };
@@ -46,7 +49,10 @@ const buildRows = (sucursales: Sucursal[]): BatchRow[] =>
   sucursales.map((sucursal) => ({
     id: `row-${String(sucursal.id)}`,
     sucursalId: String(sucursal.id),
-    montoBruto: '',
+    montoEfectivo: '',
+    montoTarjetaPos: '',
+    montoTransferencia: '',
+    montoTotal: '',
     notas: '',
     selected: true,
   }));
@@ -79,7 +85,15 @@ export default function ModalNuevaVenta({
   const selectedRows = useMemo(() => rows.filter((row) => row.selected), [rows]);
 
   const totalRecaudado = useMemo(
-    () => selectedRows.reduce((sum, row) => sum + Number(row.montoBruto || 0), 0),
+    () =>
+      selectedRows.reduce((sum, row) => {
+        const efectivo = Number(row.montoEfectivo || 0);
+        const pos = Number(row.montoTarjetaPos || 0);
+        const transferencia = Number(row.montoTransferencia || 0);
+        const totalManual = Number(row.montoTotal || 0);
+        const total = totalManual > 0 ? totalManual : efectivo + pos + transferencia;
+        return sum + total;
+      }, 0),
     [selectedRows],
   );
 
@@ -162,10 +176,22 @@ export default function ModalNuevaVenta({
   };
 
   const handleGuardarLote = async () => {
-    const filasValidas = selectedRows.filter((row) => row.selected && Number(row.montoBruto) > 0);
+    const filasValidas = selectedRows.filter((row) => {
+      if (!row.selected) {
+        return false;
+      }
+
+      const efectivo = Number(row.montoEfectivo || 0);
+      const pos = Number(row.montoTarjetaPos || 0);
+      const transferencia = Number(row.montoTransferencia || 0);
+      const totalManual = Number(row.montoTotal || 0);
+      const total = totalManual > 0 ? totalManual : efectivo + pos + transferencia;
+
+      return total > 0;
+    });
 
     if (filasValidas.length === 0) {
-      setError('Debes ingresar al menos una venta con monto mayor a 0');
+      setError('Debes ingresar al menos una venta con total mayor a 0');
       return;
     }
 
@@ -219,8 +245,20 @@ export default function ModalNuevaVenta({
           throw new Error('Hay una sucursal sin identificador válido.');
         }
 
-        const nuevoMonto = Number(row.montoBruto);
-        const notas = String(row.notas ?? '').trim();
+        const efectivo = Number(row.montoEfectivo || 0);
+        const pos = Number(row.montoTarjetaPos || 0);
+        const transferencia = Number(row.montoTransferencia || 0);
+        const totalManual = Number(row.montoTotal || 0);
+        const nuevoMonto = totalManual > 0 ? totalManual : efectivo + pos + transferencia;
+        const notasBase = String(row.notas ?? '').trim();
+        const notas = [
+          `Efectivo: ${efectivo.toFixed(2)}`,
+          `Tarjeta POS: ${pos.toFixed(2)}`,
+          `Transferencia: ${transferencia.toFixed(2)}`,
+          notasBase ? `Arqueo: ${notasBase}` : '',
+        ]
+          .filter(Boolean)
+          .join(' | ');
 
         const { data: registroExistente, error: searchError } = await supabase
           .from('ventas')
@@ -256,7 +294,7 @@ export default function ModalNuevaVenta({
         const { error: insertError } = await supabase.from('ventas').insert([
           {
             sucursal_id: sucursalId,
-            monto_bruto: nuevoMonto,
+              monto_bruto: nuevoMonto,
             costo_inversion: 0,
             fecha_inicio_corte: fechaInicio,
             fecha_fin_corte: fechaFin,
@@ -402,8 +440,11 @@ export default function ModalNuevaVenta({
                   <tr>
                     <th className="w-14 px-3 py-3 font-medium">Incl.</th>
                     <th className="w-56 px-3 py-3 font-medium">Farmacia</th>
-                    <th className="w-48 px-3 py-3 font-medium">Total Venta (Q)</th>
-                    <th className="min-w-[260px] px-3 py-3 font-medium">Notas</th>
+                    <th className="w-40 px-3 py-3 font-medium">Efectivo (Q)</th>
+                    <th className="w-40 px-3 py-3 font-medium">Tarjeta POS (Q)</th>
+                    <th className="w-40 px-3 py-3 font-medium">Transferencia (Q)</th>
+                    <th className="w-40 px-3 py-3 font-medium">Total (Q)</th>
+                    <th className="min-w-[240px] px-3 py-3 font-medium">Notas de Arqueo</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -426,10 +467,43 @@ export default function ModalNuevaVenta({
                             type="number"
                             min="0.01"
                             step="0.01"
-                            value={row.montoBruto}
-                            onChange={(event) => updateRow(row.id, { montoBruto: event.target.value })}
+                            value={row.montoEfectivo}
+                            onChange={(event) => updateRow(row.id, { montoEfectivo: event.target.value })}
                             className="w-full rounded-lg border border-slate-600 bg-slate-800 px-2 py-2 text-sm font-medium text-orange-200 outline-none transition placeholder:text-slate-400 focus:border-orange-400"
                             placeholder="0.00"
+                          />
+                        </td>
+                        <td className="px-3 py-3">
+                          <input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            value={row.montoTarjetaPos}
+                            onChange={(event) => updateRow(row.id, { montoTarjetaPos: event.target.value })}
+                            className="w-full rounded-lg border border-slate-600 bg-slate-800 px-2 py-2 text-sm font-medium text-orange-200 outline-none transition placeholder:text-slate-400 focus:border-orange-400"
+                            placeholder="0.00"
+                          />
+                        </td>
+                        <td className="px-3 py-3">
+                          <input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            value={row.montoTransferencia}
+                            onChange={(event) => updateRow(row.id, { montoTransferencia: event.target.value })}
+                            className="w-full rounded-lg border border-slate-600 bg-slate-800 px-2 py-2 text-sm font-medium text-orange-200 outline-none transition placeholder:text-slate-400 focus:border-orange-400"
+                            placeholder="0.00"
+                          />
+                        </td>
+                        <td className="px-3 py-3">
+                          <input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            value={row.montoTotal}
+                            onChange={(event) => updateRow(row.id, { montoTotal: event.target.value })}
+                            className="w-full rounded-lg border border-slate-600 bg-slate-800 px-2 py-2 text-sm font-semibold text-emerald-300 outline-none transition placeholder:text-slate-400 focus:border-blue-400"
+                            placeholder="Auto: efectivo+digital"
                           />
                         </td>
                         <td className="px-3 py-3">
