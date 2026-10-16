@@ -49,6 +49,21 @@ const parseDateOnly = (value?: string): Date | null => {
 
 const normalizeAmount = (value?: number) => Number(value ?? 0);
 
+const normalizeDateKey = (value?: string | null): string | null => {
+  if (!value) return null;
+
+  const trimmed = String(value).trim();
+  if (!trimmed) return null;
+
+  const normalized = trimmed.slice(0, 10);
+  return /^\d{4}-\d{2}-\d{2}$/.test(normalized) ? normalized : null;
+};
+
+const compareDateKeys = (left: string, right: string): number => {
+  if (left === right) return 0;
+  return left < right ? -1 : 1;
+};
+
 const extractMontos = (venta: VentaCore): { efectivo: number; digital: number; total: number } => {
   const rawNotes = String(venta.notas_recaudacion ?? '');
   const efectivoMatch = rawNotes.match(/efectivo\s*:\s*([\d.]+)/i);
@@ -70,14 +85,29 @@ const extractMontos = (venta: VentaCore): { efectivo: number; digital: number; t
 };
 
 const isInRange = (targetDate: string | undefined, fromDate: string, toDate: string): boolean => {
-  const target = parseDateOnly(targetDate);
-  const from = parseDateOnly(fromDate);
-  const to = parseDateOnly(toDate);
+  const target = normalizeDateKey(targetDate);
+  const from = normalizeDateKey(fromDate);
+  const to = normalizeDateKey(toDate);
 
   if (!target) return false;
-  if (from && target < from) return false;
-  if (to && target > to) return false;
+  if (from && compareDateKeys(target, from) < 0) return false;
+  if (to && compareDateKeys(target, to) > 0) return false;
   return true;
+};
+
+const isCorteContainedInRange = (venta: VentaCore, fromDate: string, toDate: string): boolean => {
+  const from = normalizeDateKey(fromDate);
+  const to = normalizeDateKey(toDate);
+  const inicio = normalizeDateKey(venta.fecha_inicio_corte);
+  const fin = normalizeDateKey(venta.fecha_fin_corte);
+
+  if (inicio && fin) {
+    if (from && compareDateKeys(inicio, from) < 0) return false;
+    if (to && compareDateKeys(fin, to) > 0) return false;
+    return true;
+  }
+
+  return isInRange(venta.fecha_venta, fromDate, toDate);
 };
 
 const moneyPredicate = (value: number, mode: MoneyFilterMode, rawThreshold: string): boolean => {
@@ -133,8 +163,7 @@ export function useVentasFilter({
       const branchMatch = sucursalId === 'all' || String(venta.sucursal_id ?? '') === sucursalId;
       if (!branchMatch) return false;
 
-      const dateSource = venta.fecha_fin_corte ?? venta.fecha_venta;
-      const inRange = isInRange(dateSource, fechaDesde, fechaHasta);
+      const inRange = isCorteContainedInRange(venta, fechaDesde, fechaHasta);
       if (!inRange) return false;
 
       const total = normalizeAmount(venta.monto_bruto);

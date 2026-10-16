@@ -106,10 +106,10 @@ type PlanillaRow = {
 };
 
 const formatCurrency = (value: number) =>
-  `Q ${value.toLocaleString('es-GT', {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  })}`;
+  new Intl.NumberFormat('es-GT', {
+    style: 'currency',
+    currency: 'GTQ',
+  }).format(Number.isFinite(value) ? value : 0);
 
 const formatDate = (value?: string) => {
   if (!value) return '-';
