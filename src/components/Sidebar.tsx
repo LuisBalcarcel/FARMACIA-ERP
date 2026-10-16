@@ -1,9 +1,7 @@
 'use client';
 
 import {
-  Banknote,
   LayoutGrid,
-  Landmark,
   LibraryBig,
   Pill,
   Plus,
@@ -12,7 +10,7 @@ import {
   X,
 } from 'lucide-react';
 
-export type SectionKey = 'ventas' | 'planilla' | 'gastos' | 'consolidado' | 'conciliacion';
+export type SectionKey = 'ventas' | 'planilla' | 'gastos' | 'consolidado';
 
 type SidebarProps = {
   activeSection: SectionKey;
@@ -27,7 +25,6 @@ const navigationItems: Array<{ key: SectionKey; label: string; description: stri
   { key: 'planilla', label: 'Planilla y Bonificaciones', description: 'Cortes quincenales e IGSS', icon: ReceiptText },
   { key: 'gastos', label: 'Gastos y Gastos Fijos', description: 'Registro con vigencias amplias', icon: LibraryBig },
   { key: 'consolidado', label: 'Consolidado Mensual de Gastos', description: 'Regla del tercio y balance', icon: Scale },
-  { key: 'conciliacion', label: 'Conciliación Bancaria', description: 'Boletas y cuadres', icon: Banknote },
 ];
 
 export default function Sidebar({

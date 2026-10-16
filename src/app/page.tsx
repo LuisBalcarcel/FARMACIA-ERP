@@ -8,13 +8,12 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import VentasRecaudacionesDashboard from '../components/VentasRecaudacionesDashboard';
 import ModalAnularRegistro from '@/components/ModalAnularRegistro';
 import ModalNuevoGasto from '@/components/ModalNuevoGasto';
+import ModalNuevoColaborador from '@/components/ModalNuevoColaborador';
 import ModalNuevaSucursal from '@/components/ModalNuevaSucursal';
-import ModalRegistrarDeposito from '@/components/ModalRegistrarDeposito';
 import Sidebar, { type SectionKey } from '@/components/Sidebar';
 import {
   calculateCascade,
   getOverlapDays,
-  getQuincenaRange,
   isDateInRange,
   normalizeCategoria,
   overlapsRange,
@@ -43,6 +42,29 @@ type Empleado = {
   activo?: boolean;
 };
 
+type Colaborador = {
+  id: string | number;
+  nombre: string;
+  area: 'farmacia' | 'bodega' | 'admon' | 'otros';
+  puesto: string;
+  sucursal_id: string | number | null;
+  salario_base_quincenal: number;
+  aplica_igss: boolean;
+  activo?: boolean;
+};
+
+type ColaboradorRowRaw = {
+  id?: string | number;
+  nombre?: string | null;
+  area?: string | null;
+  puesto?: string | null;
+  sucursal_id?: string | number | null;
+  sucursal_id_defecto?: string | number | null;
+  salario_base_quincenal?: number | string | null;
+  aplica_igss?: boolean | null;
+  activo?: boolean | null;
+};
+
 type Venta = {
   id: string | number;
   sucursal_id?: string | number | null;
@@ -68,15 +90,37 @@ type Gasto = {
   anulado?: boolean;
 };
 
-type DepositoRemesa = {
-  id?: string | number;
+type PlanillaQuincenal = {
+  id: string | number;
+  quincena: QuincenaKey;
   sucursal_id?: string | number | null;
-  banco_receptor?: string | null;
-  no_boleta?: string | null;
-  fecha_deposito?: string | null;
+  fecha_inicio?: string | null;
+  fecha_fin?: string | null;
+  salario_neto?: number | null;
+  estado?: string | null;
+};
+
+type PlanillaQuincenalRowRaw = {
+  id?: string | number;
+  colaborador_id?: string | number | null;
+  sucursal_id?: string | number | null;
+  anio?: number | string | null;
+  mes?: number | string | null;
+  quincena?: string | null;
+  tipo_quincena?: string | null;
+  fecha_inicio?: string | null;
+  fecha_fin?: string | null;
   fecha_inicio_corte?: string | null;
   fecha_fin_corte?: string | null;
-  monto_depositado?: number | null;
+  fecha_pago?: string | null;
+  salario_base?: number | string | null;
+  igss?: number | string | null;
+  bono_sugerido?: number | string | null;
+  bono_manual?: number | string | null;
+  bono_aplicado?: number | string | null;
+  salario_neto?: number | string | null;
+  estado?: string | null;
+  estado_cierre?: string | null;
 };
 
 type ItemAAnular = {
@@ -96,16 +140,29 @@ type GastoAplicado = {
 };
 
 type PlanillaRow = {
-  empleadoId: string;
+  colaboradorId: string;
   colaborador: string;
-  area: string;
+  area: 'farmacia' | 'bodega' | 'admon' | 'otros';
+  puesto: string;
+  sucursalAsignadaId: string;
   sucursal: string;
+  ventasSucursal: number;
   salarioBase: number;
+  aplicaIgss: boolean;
   igss: number;
   bonoSugerido: number;
+  bonoManual: number | null;
   bonoAplicado: number;
   esBonoManual: boolean;
   salarioNeto: number;
+};
+
+type QuincenaKey = 'Q1' | 'Q2';
+
+type QuincenaRange = {
+  desde: string;
+  hasta: string;
+  fechaPago: string;
 };
 
 const formatCurrency = (value: number) =>
@@ -126,16 +183,133 @@ const formatDate = (value?: string) => {
   }).format(parsed);
 };
 
-const salaryByArea = (area: string): number => {
-  if (area === 'Ventas') return 2200;
-  if (area === 'Farmacia') return 1950;
-  if (area === 'Regencia') return 1800;
-  return 1600;
+const toIsoDate = (value: Date) => value.toISOString().slice(0, 10);
+
+const getMonthRange = (monthRef: string) => {
+  const [yearRaw, monthRaw] = monthRef.split('-');
+  const year = Number(yearRaw);
+  const month = Number(monthRaw);
+  const now = new Date();
+  const safeYear = Number.isFinite(year) ? year : now.getFullYear();
+  const safeMonth = Number.isFinite(month) && month >= 1 && month <= 12 ? month : now.getMonth() + 1;
+
+  const start = new Date(safeYear, safeMonth - 1, 1);
+  const end = new Date(safeYear, safeMonth, 0);
+  return { from: toIsoDate(start), to: toIsoDate(end) };
 };
 
-const isDependienteArea = (area: string): boolean => {
-  const normalized = area.toLowerCase();
-  return normalized.includes('farmacia') || normalized.includes('mostrador') || normalized.includes('venta');
+const buildPlanillaRange = (monthRef: string, quincena: QuincenaKey): QuincenaRange => {
+  const [rawYear, rawMonth] = monthRef.split('-');
+  const year = Number(rawYear);
+  const month = Number(rawMonth);
+  const safeNow = new Date();
+  const safeYear = Number.isFinite(year) ? year : safeNow.getFullYear();
+  const safeMonth = Number.isFinite(month) && month >= 1 && month <= 12 ? month : safeNow.getMonth() + 1;
+
+  const monthStart = new Date(safeYear, safeMonth - 1, 1);
+
+  if (quincena === 'Q1') {
+    return {
+      desde: toIsoDate(new Date(monthStart.getFullYear(), monthStart.getMonth(), 9)),
+      hasta: toIsoDate(new Date(monthStart.getFullYear(), monthStart.getMonth(), 22)),
+      fechaPago: toIsoDate(new Date(monthStart.getFullYear(), monthStart.getMonth(), 23)),
+    };
+  }
+
+  const nextMonthStart = new Date(monthStart.getFullYear(), monthStart.getMonth() + 1, 1);
+  return {
+    desde: toIsoDate(new Date(monthStart.getFullYear(), monthStart.getMonth(), 23)),
+    hasta: toIsoDate(new Date(nextMonthStart.getFullYear(), nextMonthStart.getMonth(), 8)),
+    fechaPago: toIsoDate(new Date(nextMonthStart.getFullYear(), nextMonthStart.getMonth(), 9)),
+  };
+};
+
+const isVentaWithinRange = (venta: Venta, range: QuincenaRange): boolean => {
+  const inicio = venta.fecha_inicio_corte?.slice(0, 10);
+  const fin = venta.fecha_fin_corte?.slice(0, 10);
+
+  if (inicio && fin) {
+    return inicio >= range.desde && fin <= range.hasta;
+  }
+
+  const fechaVenta = venta.fecha_venta?.slice(0, 10);
+  if (!fechaVenta) return false;
+  return fechaVenta >= range.desde && fechaVenta <= range.hasta;
+};
+
+const logSupabaseError = (context: string, error: unknown) => {
+  if (typeof error === 'object' && error !== null) {
+    const supabaseError = error as {
+      message?: string;
+      details?: string;
+      hint?: string;
+    };
+    console.error(`${context}:`, supabaseError.message, supabaseError.details, supabaseError.hint);
+    return;
+  }
+
+  console.error(`${context}:`, error);
+};
+
+const normalizeColaboradorRows = (rows: ColaboradorRowRaw[] | null): Colaborador[] => {
+  if (!rows?.length) return [];
+
+  const normalized: Colaborador[] = [];
+
+  for (const row of rows) {
+    const id = row.id;
+    if (id === undefined || id === null) {
+      continue;
+    }
+
+    const sucursalId = row.sucursal_id ?? row.sucursal_id_defecto ?? null;
+    const areaRaw = String(row.area ?? '').toLowerCase();
+    const area: 'farmacia' | 'bodega' | 'admon' | 'otros' =
+      areaRaw === 'farmacia' || areaRaw === 'bodega' || areaRaw === 'admon' || areaRaw === 'otros'
+        ? areaRaw
+        : 'otros';
+
+    normalized.push({
+      id,
+      nombre: String(row.nombre ?? '').trim(),
+      area,
+      puesto: String(row.puesto ?? 'Dependiente').trim() || 'Dependiente',
+      sucursal_id: sucursalId,
+      salario_base_quincenal: Number(row.salario_base_quincenal ?? 0),
+      aplica_igss: row.aplica_igss !== false,
+      activo: row.activo !== false,
+    });
+  }
+
+  return normalized;
+};
+
+const normalizePlanillaRows = (rows: PlanillaQuincenalRowRaw[] | null): PlanillaQuincenal[] => {
+  if (!rows?.length) return [];
+
+  const normalized: PlanillaQuincenal[] = [];
+
+  for (const row of rows) {
+    const id = row.id;
+    if (id === undefined || id === null) {
+      continue;
+    }
+
+    const quincenaValor = String(row.quincena ?? row.tipo_quincena ?? '').toUpperCase();
+    const quincena: QuincenaKey = quincenaValor === 'Q2' ? 'Q2' : 'Q1';
+
+    normalized.push({
+      id,
+      quincena,
+      sucursal_id: row.sucursal_id ?? null,
+      fecha_inicio: row.fecha_inicio ?? row.fecha_inicio_corte ?? null,
+      fecha_fin: row.fecha_fin ?? row.fecha_fin_corte ?? null,
+      salario_neto: Number(row.salario_neto ?? 0),
+      estado: row.estado ?? row.estado_cierre ?? null,
+    });
+  }
+
+  return normalized;
 };
 
 export default function Home() {
@@ -144,25 +318,31 @@ export default function Home() {
   const [activeSection, setActiveSection] = useState<SectionKey>('ventas');
   const [modalVentaAbierto, setModalVentaAbierto] = useState(false);
   const [modalGastoAbierto, setModalGastoAbierto] = useState(false);
-  const [modalDepositoAbierto, setModalDepositoAbierto] = useState(false);
   const [modalSucursalAbierto, setModalSucursalAbierto] = useState(false);
+  const [modalColaboradorAbierto, setModalColaboradorAbierto] = useState(false);
   const [itemAAnular, setItemAAnular] = useState<ItemAAnular | null>(null);
 
   const [sucursales, setSucursales] = useState<Sucursal[]>([]);
   const [empleados, setEmpleados] = useState<Empleado[]>([]);
+  const [colaboradores, setColaboradores] = useState<Colaborador[]>([]);
   const [ventas, setVentas] = useState<Venta[]>([]);
   const [gastos, setGastos] = useState<Gasto[]>([]);
-  const [depositosRemesas, setDepositosRemesas] = useState<DepositoRemesa[]>([]);
+  const [planillasQuincenales, setPlanillasQuincenales] = useState<PlanillaQuincenal[]>([]);
 
   const [selectedBranch, setSelectedBranch] = useState('all');
   const [selectedFarmaciaId, setSelectedFarmaciaId] = useState('');
   const [fechaDesde, setFechaDesde] = useState('');
   const [fechaHasta, setFechaHasta] = useState('');
   const [activeDatePreset, setActiveDatePreset] = useState<'hoy' | 'semana' | 'mes' | 'anio' | 'personalizado'>('mes');
+  const [monthFilter, setMonthFilter] = useState(new Date().toISOString().slice(0, 7));
   const [moneyFilterMode, setMoneyFilterMode] = useState<MoneyFilterMode>('none');
   const [moneyFilterValue, setMoneyFilterValue] = useState('');
-  const [quincenaActiva, setQuincenaActiva] = useState<'Q1' | 'Q2'>('Q1');
+  const [areaFilterPlanilla, setAreaFilterPlanilla] = useState<'all' | 'farmacia' | 'bodega' | 'admon' | 'otros'>('all');
+  const [quincenaActiva, setQuincenaActiva] = useState<QuincenaKey>('Q1');
+  const [mesPlanilla, setMesPlanilla] = useState(new Date().toISOString().slice(0, 7));
   const [manualBonos, setManualBonos] = useState<Record<string, number>>({});
+  const [sucursalAsignadaQuincena, setSucursalAsignadaQuincena] = useState<Record<string, string>>({});
+  const [isConsolidandoPlanilla, setIsConsolidandoPlanilla] = useState(false);
   const [isLoadingData, setIsLoadingData] = useState(false);
   const [isFrozen, setIsFrozen] = useState(false);
 
@@ -183,6 +363,19 @@ export default function Home() {
       setManualBonos(parsed);
     } catch (error) {
       console.error('No se pudo recuperar bonos manuales:', error);
+    }
+  }, [mounted]);
+
+  useEffect(() => {
+    if (!mounted) return;
+
+    try {
+      const raw = window.localStorage.getItem('planilla_sucursal_asignada_v1');
+      if (!raw) return;
+      const parsed = JSON.parse(raw) as Record<string, string>;
+      setSucursalAsignadaQuincena(parsed);
+    } catch (error) {
+      console.error('No se pudo recuperar asignaciones de sucursal por quincena:', error);
     }
   }, [mounted]);
 
@@ -218,27 +411,44 @@ export default function Home() {
       setGastos((gastosResponse.data as Gasto[] | null) ?? []);
 
       try {
-        const { data: depositosData, error: depositosError } = await supabase
-          .from('depositos_remesas')
+        const { data: colaboradoresData, error: colaboradoresError } = await supabase
+          .from('colaboradores')
           .select('*')
-          .order('fecha_deposito', { ascending: false });
+          .order('nombre', { ascending: true });
 
-        if (depositosError) {
-          throw depositosError;
+        if (colaboradoresError) {
+          throw colaboradoresError;
         }
 
-        setDepositosRemesas((depositosData as DepositoRemesa[] | null) ?? []);
-      } catch (depositosError) {
-        console.error('Error cargando depósitos/remesas:', depositosError);
-        setDepositosRemesas([]);
+        setColaboradores(normalizeColaboradorRows((colaboradoresData as ColaboradorRowRaw[] | null) ?? []));
+      } catch (colaboradoresError) {
+        logSupabaseError('Detalle error Supabase (colaboradores)', colaboradoresError);
+        setColaboradores([]);
+      }
+
+      try {
+        const { data: planillasData, error: planillasError } = await supabase
+          .from('planillas_quincenales')
+          .select('id, colaborador_id, sucursal_id, anio, mes, tipo_quincena, fecha_inicio_corte, fecha_fin_corte, fecha_pago, salario_base, igss, bono_sugerido, bono_manual, bono_aplicado, salario_neto, estado_cierre')
+          .order('fecha_inicio_corte', { ascending: false });
+
+        if (planillasError) {
+          throw planillasError;
+        }
+
+        setPlanillasQuincenales(normalizePlanillaRows((planillasData as PlanillaQuincenalRowRaw[] | null) ?? []));
+      } catch (planillasError) {
+        logSupabaseError('Detalle error Supabase (planillas_quincenales)', planillasError);
+        setPlanillasQuincenales([]);
       }
     } catch (error) {
-      console.error('Error cargando datos:', error);
+      logSupabaseError('Detalle error Supabase (carga principal)', error);
       setSucursales([]);
       setEmpleados([]);
+      setColaboradores([]);
       setVentas([]);
       setGastos([]);
-      setDepositosRemesas([]);
+      setPlanillasQuincenales([]);
     } finally {
       setIsLoadingData(false);
     }
@@ -269,10 +479,19 @@ export default function Home() {
       const range = getDateRangeFromPreset(preset);
       setFechaDesde(range.from);
       setFechaHasta(range.to);
+      setMonthFilter(range.from.slice(0, 7));
       setActiveDatePreset(preset);
     },
     [fechaDesde, fechaHasta],
   );
+
+  const applyMonthFilter = useCallback((monthRef: string) => {
+    setMonthFilter(monthRef);
+    const range = getMonthRange(monthRef);
+    setFechaDesde(range.from);
+    setFechaHasta(range.to);
+    setActiveDatePreset('personalizado');
+  }, []);
 
   const ventasDashboard = useVentasFilter({
     ventas,
@@ -338,18 +557,18 @@ export default function Home() {
       });
   }, [gastos, selectedBranch, fechaDesde, fechaHasta]);
 
-  const quincenaRange = useMemo(() => {
-    const base = fechaHasta || new Date().toISOString().slice(0, 10);
-    return getQuincenaRange(base, quincenaActiva);
-  }, [fechaHasta, quincenaActiva]);
+  const quincenaRange = useMemo(() => buildPlanillaRange(mesPlanilla, quincenaActiva), [mesPlanilla, quincenaActiva]);
+
+  const makePlanillaKey = useCallback(
+    (colaboradorId: string | number, range: QuincenaRange) => `${String(colaboradorId)}_${range.desde}_${range.hasta}`,
+    [],
+  );
 
   const ventasQuincena = useMemo(() => {
-    return ventasDashboard.ventasActivas.filter((venta) => {
-      const date = venta.fecha_fin_corte ?? venta.fecha_venta;
-      if (!date) return false;
-      return isDateInRange(date, quincenaRange.desde, quincenaRange.hasta);
-    });
-  }, [ventasDashboard.ventasActivas, quincenaRange.desde, quincenaRange.hasta]);
+    return ventas
+      .filter((venta) => !venta.anulado)
+      .filter((venta) => isVentaWithinRange(venta, quincenaRange));
+  }, [ventas, quincenaRange]);
 
   const totalVentasQuincena = useMemo(
     () => ventasQuincena.reduce((sum, venta) => sum + Number(venta.monto_bruto ?? 0), 0),
@@ -358,74 +577,107 @@ export default function Home() {
 
   const cascadeQuincena = useMemo(() => calculateCascade(totalVentasQuincena), [totalVentasQuincena]);
 
-  const empleadosActivos = useMemo(() => {
-    if (selectedBranch === 'all' || selectedBranch === 'corporativo') {
-      return empleados.filter((empleado) => empleado.activo !== false);
-    }
+  const colaboradoresActivos = useMemo(
+    () => colaboradores.filter((colaborador) => colaborador.activo !== false),
+    [colaboradores],
+  );
 
-    return empleados.filter(
-      (empleado) =>
-        empleado.activo !== false && String(empleado.sucursal_id ?? '') === String(selectedBranch),
-    );
-  }, [empleados, selectedBranch]);
-
-  const ventaSucursalMap = useMemo(() => {
+  const ventasPorSucursalQuincena = useMemo(() => {
     const map: Record<string, number> = {};
     for (const venta of ventasQuincena) {
       const key = String(venta.sucursal_id ?? '');
+      if (!key) continue;
       map[key] = (map[key] ?? 0) + Number(venta.monto_bruto ?? 0);
     }
     return map;
   }, [ventasQuincena]);
 
-  const dependientesSucursalMap = useMemo(() => {
-    const map: Record<string, number> = {};
-    for (const empleado of empleadosActivos) {
-      if (!isDependienteArea(empleado.area)) continue;
-      const key = String(empleado.sucursal_id ?? '');
-      map[key] = (map[key] ?? 0) + 1;
+  const sucursalAsignadaPorColaborador = useMemo(() => {
+    const map: Record<string, string> = {};
+    for (const colaborador of colaboradoresActivos) {
+      const key = makePlanillaKey(colaborador.id, quincenaRange);
+      const override = sucursalAsignadaQuincena[key];
+      map[String(colaborador.id)] = override ?? String(colaborador.sucursal_id ?? '');
     }
     return map;
-  }, [empleadosActivos]);
+  }, [colaboradoresActivos, makePlanillaKey, quincenaRange, sucursalAsignadaQuincena]);
 
-  const makeManualKey = useCallback(
-    (empleadoId: string | number) => `${String(empleadoId)}_${quincenaRange.desde}_${quincenaRange.hasta}`,
-    [quincenaRange.desde, quincenaRange.hasta],
+  const colaboradoresFarmaciaPorSucursal = useMemo(() => {
+    const map: Record<string, number> = {};
+    for (const colaborador of colaboradoresActivos) {
+      if (colaborador.area !== 'farmacia') continue;
+      const assigned = sucursalAsignadaPorColaborador[String(colaborador.id)] ?? '';
+      if (!assigned) continue;
+      map[assigned] = (map[assigned] ?? 0) + 1;
+    }
+    return map;
+  }, [colaboradoresActivos, sucursalAsignadaPorColaborador]);
+
+  const totalColaboradoresBodega = useMemo(
+    () => colaboradoresActivos.filter((colaborador) => colaborador.area === 'bodega').length,
+    [colaboradoresActivos],
   );
 
   const planillaRows = useMemo<PlanillaRow[]>(() => {
-    return empleadosActivos.map((empleado) => {
-      const base = salaryByArea(empleado.area);
-      const sucursalKey = String(empleado.sucursal_id ?? '');
-      const ventaSucursal = ventaSucursalMap[sucursalKey] ?? 0;
-      const share = totalVentasQuincena > 0 ? ventaSucursal / totalVentasQuincena : 0;
-      const poolSucursal = cascadeQuincena.bonoDependientes * share;
-      const countDependientes = dependientesSucursalMap[sucursalKey] ?? 1;
-      const bonoSugerido = isDependienteArea(empleado.area) ? poolSucursal / countDependientes : 0;
+    return colaboradoresActivos.map((colaborador) => {
+      const colaboradorId = String(colaborador.id);
+      const sucursalAsignadaId = sucursalAsignadaPorColaborador[colaboradorId] ?? String(colaborador.sucursal_id ?? '');
+      const ventasSucursal = ventasPorSucursalQuincena[sucursalAsignadaId] ?? 0;
+      const bonoTotalSucursal = ventasSucursal * 0.01;
+      const bonoDependientesSucursal = bonoTotalSucursal * 0.6;
+      const cantidadFarmacia = colaboradoresFarmaciaPorSucursal[sucursalAsignadaId] ?? 0;
 
-      const key = makeManualKey(empleado.id);
-      const manual = manualBonos[key];
-      const esManual = Number.isFinite(manual);
-      const bonoAplicado = esManual ? manual : bonoSugerido;
+      const bonoSugerido = (() => {
+        if (colaborador.area === 'farmacia') {
+          return cantidadFarmacia > 0 ? bonoDependientesSucursal / cantidadFarmacia : 0;
+        }
 
-      const igss = base * 0.0483;
-      const bonificacionLey = 250;
-      const salarioNeto = base + bonificacionLey + bonoAplicado - igss;
+        if (colaborador.area === 'bodega') {
+          const bonoBodegaGlobal = totalVentasQuincena * 0.01 * 0.4;
+          return totalColaboradoresBodega > 0 ? bonoBodegaGlobal / totalColaboradoresBodega : 0;
+        }
+
+        return 0;
+      })();
+
+      const manualKey = makePlanillaKey(colaborador.id, quincenaRange);
+      const bonoManualRaw = manualBonos[manualKey];
+      const esBonoManual = Number.isFinite(bonoManualRaw);
+      const bonoManual = esBonoManual ? Number(bonoManualRaw) : null;
+      const bonoAplicado = esBonoManual ? Number(bonoManualRaw) : bonoSugerido;
+
+      const salarioBase = Number(colaborador.salario_base_quincenal ?? 0);
+      const aplicaIgss = colaborador.aplica_igss !== false;
+      const igss = aplicaIgss ? Number((salarioBase * 0.0483).toFixed(2)) : 0;
+      const salarioNeto = salarioBase - igss + bonoAplicado;
 
       return {
-        empleadoId: String(empleado.id),
-        colaborador: empleado.nombre_completo,
-        area: empleado.area,
-        sucursal: sucursales.find((item) => String(item.id) === sucursalKey)?.nombre ?? 'Sucursal',
-        salarioBase: base,
+        colaboradorId,
+        colaborador: colaborador.nombre,
+        area: colaborador.area,
+        puesto: colaborador.puesto,
+        sucursalAsignadaId,
+        sucursal: sucursales.find((item) => String(item.id) === sucursalAsignadaId)?.nombre ?? 'Sin sucursal',
+        ventasSucursal,
+        salarioBase,
+        aplicaIgss,
         igss,
         bonoSugerido,
+        bonoManual,
         bonoAplicado,
-        esBonoManual: esManual,
+        esBonoManual,
         salarioNeto,
       };
     });
-  }, [empleadosActivos, ventaSucursalMap, totalVentasQuincena, cascadeQuincena.bonoDependientes, dependientesSucursalMap, makeManualKey, manualBonos, sucursales]);
+  }, [colaboradoresActivos, sucursalAsignadaPorColaborador, ventasPorSucursalQuincena, colaboradoresFarmaciaPorSucursal, makePlanillaKey, quincenaRange, manualBonos, sucursales, totalVentasQuincena, totalColaboradoresBodega]);
+
+  const planillaRowsFiltradas = useMemo(() => {
+    if (areaFilterPlanilla === 'all') {
+      return planillaRows;
+    }
+
+    return planillaRows.filter((row) => row.area === areaFilterPlanilla);
+  }, [planillaRows, areaFilterPlanilla]);
 
   const persistManualBonos = useCallback((next: Record<string, number>) => {
     setManualBonos(next);
@@ -434,8 +686,15 @@ export default function Home() {
     }
   }, []);
 
-  const handleBonoManualChange = (empleadoId: string, value: string) => {
-    const key = makeManualKey(empleadoId);
+  const handleBonoManualChange = (colaboradorId: string, value: string) => {
+    const key = makePlanillaKey(colaboradorId, quincenaRange);
+    if (!value.trim()) {
+      const cleaned = { ...manualBonos };
+      delete cleaned[key];
+      persistManualBonos(cleaned);
+      return;
+    }
+
     const parsed = Number(value);
     const next = { ...manualBonos };
 
@@ -449,11 +708,24 @@ export default function Home() {
     persistManualBonos(next);
   };
 
-  const resetBonoAutomatico = (empleadoId: string) => {
-    const key = makeManualKey(empleadoId);
+  const resetBonoAutomatico = (colaboradorId: string) => {
+    const key = makePlanillaKey(colaboradorId, quincenaRange);
     const next = { ...manualBonos };
     delete next[key];
     persistManualBonos(next);
+  };
+
+  const persistSucursalAsignada = useCallback((next: Record<string, string>) => {
+    setSucursalAsignadaQuincena(next);
+    if (typeof window !== 'undefined') {
+      window.localStorage.setItem('planilla_sucursal_asignada_v1', JSON.stringify(next));
+    }
+  }, []);
+
+  const handleSucursalAsignadaChange = (colaboradorId: string, sucursalId: string) => {
+    const key = makePlanillaKey(colaboradorId, quincenaRange);
+    const next = { ...sucursalAsignadaQuincena, [key]: sucursalId };
+    persistSucursalAsignada(next);
   };
 
   const totalPlanilla = useMemo(
@@ -494,50 +766,100 @@ export default function Home() {
     return map;
   }, [gastosAplicados]);
 
-  const planillaTotalQuincena = useCallback(
-    (quincena: 'Q1' | 'Q2') => {
-      const period = getQuincenaRange(fechaHasta || new Date().toISOString().slice(0, 10), quincena);
-      const ventasPeriodo = ventasDashboard.ventasActivas.filter((venta) => {
-        const date = venta.fecha_fin_corte ?? venta.fecha_venta;
-        return Boolean(date) && isDateInRange(String(date), period.desde, period.hasta);
-      });
+  const computePlanillaTotalQuincena = useCallback(
+    (quincena: QuincenaKey) => {
+      const range = buildPlanillaRange(mesPlanilla, quincena);
 
-      const totalVentasPeriodo = ventasPeriodo.reduce((sum, venta) => sum + Number(venta.monto_bruto ?? 0), 0);
-      const cascade = calculateCascade(totalVentasPeriodo);
+      const ventasPeriodo = ventas
+        .filter((venta) => !venta.anulado)
+        .filter((venta) => isVentaWithinRange(venta, range));
 
-      const ventaSucursal: Record<string, number> = {};
+      const ventasPorSucursal: Record<string, number> = {};
       for (const venta of ventasPeriodo) {
         const key = String(venta.sucursal_id ?? '');
-        ventaSucursal[key] = (ventaSucursal[key] ?? 0) + Number(venta.monto_bruto ?? 0);
+        if (!key) continue;
+        ventasPorSucursal[key] = (ventasPorSucursal[key] ?? 0) + Number(venta.monto_bruto ?? 0);
       }
 
-      const dependientes: Record<string, number> = {};
-      for (const empleado of empleadosActivos) {
-        if (!isDependienteArea(empleado.area)) continue;
-        const key = String(empleado.sucursal_id ?? '');
-        dependientes[key] = (dependientes[key] ?? 0) + 1;
+      const asignadosPorSucursal: Record<string, number> = {};
+      let totalBodega = 0;
+      for (const colaborador of colaboradoresActivos) {
+        const keyAsignacion = makePlanillaKey(colaborador.id, range);
+        const sucursalAsignada = sucursalAsignadaQuincena[keyAsignacion] ?? String(colaborador.sucursal_id ?? '');
+
+        if (colaborador.area === 'farmacia') {
+          if (!sucursalAsignada) continue;
+          asignadosPorSucursal[sucursalAsignada] = (asignadosPorSucursal[sucursalAsignada] ?? 0) + 1;
+          continue;
+        }
+
+        if (colaborador.area === 'bodega') {
+          totalBodega += 1;
+        }
       }
 
-      return empleadosActivos.reduce((sum, empleado) => {
-        const base = salaryByArea(empleado.area);
-        const sucursalKey = String(empleado.sucursal_id ?? '');
-        const venta = ventaSucursal[sucursalKey] ?? 0;
-        const share = totalVentasPeriodo > 0 ? venta / totalVentasPeriodo : 0;
-        const pool = cascade.bonoDependientes * share;
-        const count = dependientes[sucursalKey] ?? 1;
-        const bono = isDependienteArea(empleado.area) ? pool / count : 0;
-        const igss = base * 0.0483;
-        return sum + (base + 250 + bono - igss);
+      const totalVentasPeriodo = ventasPeriodo.reduce((sum, venta) => sum + Number(venta.monto_bruto ?? 0), 0);
+      const bonoBodegaGlobal = totalVentasPeriodo * 0.01 * 0.4;
+
+      return colaboradoresActivos.reduce((sum, colaborador) => {
+        const keyAsignacion = makePlanillaKey(colaborador.id, range);
+        const sucursalAsignada = sucursalAsignadaQuincena[keyAsignacion] ?? String(colaborador.sucursal_id ?? '');
+        const ventasSucursal = ventasPorSucursal[sucursalAsignada] ?? 0;
+
+        const bonoSugerido = (() => {
+          if (colaborador.area === 'farmacia') {
+            return (ventasSucursal * 0.01 * 0.6) / Math.max(1, asignadosPorSucursal[sucursalAsignada] ?? 0);
+          }
+
+          if (colaborador.area === 'bodega') {
+            return totalBodega > 0 ? bonoBodegaGlobal / totalBodega : 0;
+          }
+
+          return 0;
+        })();
+
+        const manualKey = makePlanillaKey(colaborador.id, range);
+        const bonoManual = manualBonos[manualKey];
+        const bonoAplicado = Number.isFinite(bonoManual) ? Number(bonoManual) : bonoSugerido;
+        const base = Number(colaborador.salario_base_quincenal ?? 0);
+        const igss = colaborador.aplica_igss !== false ? Number((base * 0.0483).toFixed(2)) : 0;
+        return sum + (base - igss + bonoAplicado);
       }, 0);
     },
-    [fechaHasta, ventasDashboard.ventasActivas, empleadosActivos],
+    [mesPlanilla, ventas, colaboradoresActivos, makePlanillaKey, sucursalAsignadaQuincena, manualBonos],
   );
 
-  const salariosQ1 = useMemo(() => planillaTotalQuincena('Q1'), [planillaTotalQuincena]);
-  const salariosQ2 = useMemo(() => planillaTotalQuincena('Q2'), [planillaTotalQuincena]);
+  const salariosQ1 = useMemo(() => computePlanillaTotalQuincena('Q1'), [computePlanillaTotalQuincena]);
+  const salariosQ2 = useMemo(() => computePlanillaTotalQuincena('Q2'), [computePlanillaTotalQuincena]);
+
+  const salariosConsolidadoQ1 = useMemo(() => {
+    return planillasQuincenales
+      .filter((row) => String(row.quincena ?? '').toUpperCase() === 'Q1')
+      .filter((row) => {
+        const fechaInicio = String(row.fecha_inicio ?? '').slice(0, 10);
+        if (!fechaInicio) return false;
+        if (fechaInicio < fechaDesde || fechaInicio > fechaHasta) return false;
+        if (selectedBranch === 'all' || selectedBranch === 'corporativo') return true;
+        return String(row.sucursal_id ?? '') === selectedBranch;
+      })
+      .reduce((sum, row) => sum + Number(row.salario_neto ?? 0), 0);
+  }, [planillasQuincenales, fechaDesde, fechaHasta, selectedBranch]);
+
+  const salariosConsolidadoQ2 = useMemo(() => {
+    return planillasQuincenales
+      .filter((row) => String(row.quincena ?? '').toUpperCase() === 'Q2')
+      .filter((row) => {
+        const fechaInicio = String(row.fecha_inicio ?? '').slice(0, 10);
+        if (!fechaInicio) return false;
+        if (fechaInicio < fechaDesde || fechaInicio > fechaHasta) return false;
+        if (selectedBranch === 'all' || selectedBranch === 'corporativo') return true;
+        return String(row.sucursal_id ?? '') === selectedBranch;
+      })
+      .reduce((sum, row) => sum + Number(row.salario_neto ?? 0), 0);
+  }, [planillasQuincenales, fechaDesde, fechaHasta, selectedBranch]);
 
   const totalGastosMes = useMemo(() => {
-    const subtotalSalarios = salariosQ1 + salariosQ2;
+    const subtotalSalarios = salariosConsolidadoQ1 + salariosConsolidadoQ2;
     return (
       subtotalSalarios +
       gastosPorCategoria.RENTAS +
@@ -553,37 +875,10 @@ export default function Home() {
       gastosPorCategoria.EQUIPO_COMPUTO_CAMARAS +
       gastosPorCategoria.VARIOS
     );
-  }, [gastosPorCategoria, salariosQ1, salariosQ2]);
+  }, [gastosPorCategoria, salariosConsolidadoQ1, salariosConsolidadoQ2]);
 
   const presupuestoGastos = useMemo(() => ventasDashboard.totalGeneral / 3, [ventasDashboard.totalGeneral]);
   const balanceGastos = useMemo(() => presupuestoGastos - totalGastosMes, [presupuestoGastos, totalGastosMes]);
-
-  const conciliacionRows = useMemo(() => {
-    const sucursalesFiltradas =
-      selectedBranch === 'all' || selectedBranch === 'corporativo'
-        ? sucursales
-        : sucursales.filter((item) => String(item.id) === selectedBranch);
-
-    return sucursalesFiltradas.map((sucursal) => {
-      const sucursalId = String(sucursal.id);
-      const totalRecaudado = ventasDashboard.ventasActivas
-        .filter((venta) => String(venta.sucursal_id ?? '') === sucursalId)
-        .reduce((sum, venta) => sum + Number(venta.monto_bruto ?? 0), 0);
-
-      const totalDepositado = depositosRemesas
-        .filter((deposito) => String(deposito.sucursal_id ?? '') === sucursalId)
-        .filter((deposito) => isDateInRange(deposito.fecha_deposito ?? '', fechaDesde, fechaHasta))
-        .reduce((sum, deposito) => sum + Number(deposito.monto_depositado ?? 0), 0);
-
-      return {
-        sucursalId,
-        sucursal: sucursal.nombre,
-        totalRecaudado,
-        totalDepositado,
-        diferencia: totalDepositado - totalRecaudado,
-      };
-    });
-  }, [sucursales, selectedBranch, ventasDashboard.ventasActivas, depositosRemesas, fechaDesde, fechaHasta]);
 
   const handleQuickAction = (action: 'venta' | 'gasto') => {
     if (action === 'venta') {
@@ -627,12 +922,86 @@ export default function Home() {
     }
   };
 
+  const handleColaboradorCreated = (nuevoColaborador: Colaborador) => {
+    setColaboradores((current) => {
+      const next = [...current, nuevoColaborador];
+      return next.sort((a, b) => a.nombre.localeCompare(b.nombre, 'es', { sensitivity: 'base' }));
+    });
+
+    setModalColaboradorAbierto(false);
+    if (typeof window !== 'undefined') {
+      window.alert('Colaborador registrado con éxito');
+    }
+  };
+
+  const handleConsolidarPlanilla = async () => {
+    if (planillaRows.length === 0) {
+      if (typeof window !== 'undefined') {
+        window.alert('No hay colaboradores para consolidar en la quincena activa.');
+      }
+      return;
+    }
+
+    setIsConsolidandoPlanilla(true);
+
+    try {
+      const payload = planillaRows.map((row) => ({
+        colaborador_id: row.colaboradorId,
+        colaborador_nombre: row.colaborador,
+        area: row.area,
+        puesto: row.puesto,
+        sucursal_id: row.sucursalAsignadaId || null,
+        sucursal_nombre: row.sucursal,
+        quincena: quincenaActiva,
+        mes_referencia: mesPlanilla,
+        fecha_inicio: quincenaRange.desde,
+        fecha_fin: quincenaRange.hasta,
+        fecha_pago: quincenaRange.fechaPago,
+        ventas_sucursal: row.ventasSucursal,
+        salario_base_quincenal: row.salarioBase,
+        aplica_igss: row.aplicaIgss,
+        igss: row.igss,
+        bono_sugerido: row.bonoSugerido,
+        bono_manual: row.bonoManual,
+        bono_aplicado: row.bonoAplicado,
+        salario_neto: row.salarioNeto,
+        estado: 'CONSOLIDADO',
+        consolidado_en: new Date().toISOString(),
+      }));
+
+      const { error } = await supabase
+        .from('planillas_quincenales')
+        .upsert(payload, { onConflict: 'colaborador_id,fecha_inicio,fecha_fin' });
+
+      if (error) {
+        throw error;
+      }
+
+      if (typeof window !== 'undefined') {
+        window.alert('Planilla consolidada exitosamente para reportería.');
+      }
+    } catch (consolidarError) {
+      console.error('Error consolidando planilla:', consolidarError);
+      const detail =
+        consolidarError instanceof Error
+          ? consolidarError.message
+          : typeof consolidarError === 'object' && consolidarError !== null && 'message' in consolidarError
+            ? String((consolidarError as { message?: string }).message ?? '')
+            : 'No se pudo consolidar la planilla.';
+
+      if (typeof window !== 'undefined') {
+        window.alert(`Error al consolidar planilla: ${detail}`);
+      }
+    } finally {
+      setIsConsolidandoPlanilla(false);
+    }
+  };
+
   const sectionTitleMap: Record<SectionKey, string> = {
     ventas: 'Ventas y Recaudaciones',
     planilla: 'Planilla y Bonificaciones',
     gastos: 'Gastos y Gastos Fijos',
     consolidado: 'Consolidado Mensual de Gastos',
-    conciliacion: 'Conciliación Bancaria',
   };
 
   const ventasSinDatos = sucursales.length === 0 && ventas.length === 0;
@@ -681,6 +1050,15 @@ export default function Home() {
               >
                 <Plus className="h-4 w-4" />
                 + Nueva Farmacia / Sucursal
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setModalColaboradorAbierto(true)}
+                className="bg-indigo-600 hover:bg-indigo-500 text-white font-medium px-4 py-2 rounded-lg flex items-center gap-2 shadow-sm transition-all"
+              >
+                <Plus className="h-4 w-4" />
+                + Nuevo Colaborador
               </button>
 
               <button
@@ -775,15 +1153,45 @@ export default function Home() {
             onSuccess={handleSucursalCreated}
           />
 
+          <ModalNuevoColaborador
+            isOpen={modalColaboradorAbierto}
+            onClose={() => setModalColaboradorAbierto(false)}
+            onSuccess={handleColaboradorCreated}
+            sucursales={sucursales}
+          />
+
           {activeSection === 'planilla' && (
             <section className="space-y-4">
+              <div className="flex flex-wrap items-end justify-between gap-3">
+                <label className="space-y-2 text-xs uppercase tracking-[0.14em] text-slate-400">
+                  <span>Mes de planilla</span>
+                  <input
+                    type="month"
+                    value={mesPlanilla}
+                    onChange={(event) => setMesPlanilla(event.target.value)}
+                    className="rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-white outline-none transition focus:border-indigo-400"
+                  />
+                </label>
+
+                <button
+                  type="button"
+                  onClick={handleConsolidarPlanilla}
+                  disabled={isConsolidandoPlanilla}
+                  className="inline-flex items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-indigo-900/40 transition hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-70"
+                >
+                  {isConsolidandoPlanilla ? 'Consolidando...' : 'Cargar Reporte Quincenal / Mensual'}
+                </button>
+              </div>
+
               <div className="grid gap-3 md:grid-cols-4">
                 <div className="rounded-2xl border border-slate-800 bg-slate-900 p-4">
                   <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Corte activo</p>
                   <p className="mt-2 text-sm font-semibold text-white">
                     {quincenaActiva === 'Q1' ? 'Quincena 1 (09 al 22)' : 'Quincena 2 (23 al 08)'}
                   </p>
-                  <p className="mt-1 text-xs text-slate-400">{formatDate(quincenaRange.desde)} - {formatDate(quincenaRange.hasta)}</p>
+                  <p className="mt-1 text-xs text-slate-400">
+                    {formatDate(quincenaRange.desde)} - {formatDate(quincenaRange.hasta)} | Pago: {formatDate(quincenaRange.fechaPago)}
+                  </p>
                 </div>
                 <div className="rounded-2xl border border-slate-800 bg-slate-900 p-4">
                   <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Bono Total (1%)</p>
@@ -822,6 +1230,18 @@ export default function Home() {
                 >
                   Quincena 2 (23-08)
                 </button>
+
+                <select
+                  value={areaFilterPlanilla}
+                  onChange={(event) => setAreaFilterPlanilla(event.target.value as 'all' | 'farmacia' | 'bodega' | 'admon' | 'otros')}
+                  className="rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-xs font-semibold uppercase tracking-[0.14em] text-slate-200 outline-none transition focus:border-indigo-400"
+                >
+                  <option value="all">Todas las áreas</option>
+                  <option value="farmacia">Farmacia</option>
+                  <option value="bodega">Bodega</option>
+                  <option value="admon">Administración</option>
+                  <option value="otros">Otros</option>
+                </select>
               </div>
 
               <div className="grid gap-3 md:grid-cols-3">
@@ -844,7 +1264,8 @@ export default function Home() {
                   <thead className="bg-slate-950/80 text-slate-300">
                     <tr>
                       <th className="px-4 py-3">Colaborador</th>
-                      <th className="px-4 py-3">Sucursal</th>
+                      <th className="px-4 py-3">Sucursal Quincenal</th>
+                      <th className="px-4 py-3 text-right">Ventas Sucursal</th>
                       <th className="px-4 py-3 text-right">Salario Base</th>
                       <th className="px-4 py-3 text-right">IGSS</th>
                       <th className="px-4 py-3 text-right">Bono Sugerido</th>
@@ -854,13 +1275,42 @@ export default function Home() {
                     </tr>
                   </thead>
                   <tbody>
-                    {planillaRows.map((row) => (
-                      <tr key={row.empleadoId} className="border-t border-slate-800">
+                    {planillaRowsFiltradas.map((row) => (
+                      <tr key={row.colaboradorId} className="border-t border-slate-800">
                         <td className="px-4 py-3 text-slate-200">
-                          <div className="font-medium text-white">{row.colaborador}</div>
-                          <div className="text-[11px] text-slate-400">{row.area}</div>
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium text-white">{row.colaborador}</span>
+                            <span
+                              className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] ${
+                                row.area === 'farmacia'
+                                  ? 'border-cyan-500/40 bg-cyan-500/10 text-cyan-300'
+                                  : row.area === 'bodega'
+                                    ? 'border-amber-500/40 bg-amber-500/10 text-amber-300'
+                                    : row.area === 'admon'
+                                      ? 'border-indigo-500/40 bg-indigo-500/10 text-indigo-300'
+                                      : 'border-slate-500/40 bg-slate-500/10 text-slate-300'
+                              }`}
+                            >
+                              {row.area}
+                            </span>
+                          </div>
+                          <div className="text-[11px] text-slate-400">{row.puesto}</div>
                         </td>
-                        <td className="px-4 py-3 text-slate-300">{row.sucursal}</td>
+                        <td className="px-4 py-3 text-slate-300">
+                          <select
+                            value={row.sucursalAsignadaId}
+                            onChange={(event) => handleSucursalAsignadaChange(row.colaboradorId, event.target.value)}
+                            className="w-full min-w-[220px] rounded-lg border border-slate-700 bg-slate-950 px-2 py-1.5 text-xs text-white outline-none focus:border-indigo-400"
+                          >
+                            <option value="">Sin asignar</option>
+                            {sucursales.map((sucursal) => (
+                              <option key={String(sucursal.id)} value={String(sucursal.id)}>
+                                {sucursal.nombre}
+                              </option>
+                            ))}
+                          </select>
+                        </td>
+                        <td className="px-4 py-3 text-right font-mono text-emerald-400">{formatCurrency(row.ventasSucursal)}</td>
                         <td className="px-4 py-3 text-right font-mono text-emerald-400">{formatCurrency(row.salarioBase)}</td>
                         <td className="px-4 py-3 text-right font-mono text-emerald-400">{formatCurrency(row.igss)}</td>
                         <td className="px-4 py-3 text-right font-mono text-emerald-400">{formatCurrency(row.bonoSugerido)}</td>
@@ -870,14 +1320,14 @@ export default function Home() {
                               type="number"
                               min="0"
                               step="0.01"
-                              value={row.esBonoManual ? String(row.bonoAplicado) : ''}
-                              onChange={(event) => handleBonoManualChange(row.empleadoId, event.target.value)}
+                              value={row.esBonoManual ? String(row.bonoManual ?? '') : ''}
+                              onChange={(event) => handleBonoManualChange(row.colaboradorId, event.target.value)}
                               placeholder="Automático"
                               className="w-36 rounded-lg border border-slate-700 bg-slate-950 px-2 py-1.5 text-xs text-white outline-none focus:border-blue-400"
                             />
                             <button
                               type="button"
-                              onClick={() => resetBonoAutomatico(row.empleadoId)}
+                              onClick={() => resetBonoAutomatico(row.colaboradorId)}
                               className="rounded-lg border border-slate-700 bg-slate-950 px-2 py-1.5 text-[11px] font-semibold text-slate-300 transition hover:border-orange-400 hover:text-orange-200"
                             >
                               Restablecer a cálculo automático
@@ -895,6 +1345,13 @@ export default function Home() {
                         <td className="px-4 py-3 text-right font-mono text-emerald-400 font-bold">{formatCurrency(row.salarioNeto)}</td>
                       </tr>
                     ))}
+                    {planillaRowsFiltradas.length === 0 && (
+                      <tr>
+                        <td colSpan={9} className="px-4 py-5 text-center text-sm text-slate-400">
+                          No hay colaboradores activos para la quincena seleccionada.
+                        </td>
+                      </tr>
+                    )}
                   </tbody>
                 </table>
               </div>
@@ -903,6 +1360,90 @@ export default function Home() {
 
           {activeSection === 'gastos' && (
             <section className="space-y-4">
+              <div className="rounded-2xl border border-slate-800 bg-slate-900 p-4 shadow-xl shadow-slate-950/30">
+                <div className="flex flex-col gap-3">
+                  <div className="flex flex-wrap items-end justify-between gap-3">
+                    <label className="space-y-1 text-xs uppercase tracking-[0.12em] text-slate-300">
+                      <span>Mes a Mes</span>
+                      <input
+                        type="month"
+                        value={monthFilter}
+                        onChange={(event) => applyMonthFilter(event.target.value)}
+                        className="rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white outline-none transition focus:border-blue-400"
+                      />
+                    </label>
+
+                    <div className="flex items-center gap-2 overflow-x-auto py-1 no-scrollbar">
+                      {[
+                        { key: 'hoy', label: 'Hoy' },
+                        { key: 'semana', label: 'Esta Semana' },
+                        { key: 'mes', label: 'Este Mes' },
+                        { key: 'anio', label: 'Este Ano' },
+                        { key: 'personalizado', label: 'Rango Libre' },
+                      ].map((preset) => (
+                        <button
+                          key={preset.key}
+                          type="button"
+                          onClick={() => applyDatePreset(preset.key as 'hoy' | 'semana' | 'mes' | 'anio' | 'personalizado')}
+                          className={`whitespace-nowrap rounded-xl border px-3 py-2 text-xs font-semibold uppercase tracking-[0.12em] transition ${
+                            activeDatePreset === preset.key
+                              ? 'border-blue-500/40 bg-blue-500/10 text-blue-200'
+                              : 'border-slate-700 bg-slate-950 text-slate-300 hover:border-blue-400 hover:text-white'
+                          }`}
+                        >
+                          {preset.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+                    <label className="space-y-1 text-xs uppercase tracking-[0.12em] text-slate-300">
+                      <span>Desde</span>
+                      <input
+                        type="date"
+                        value={fechaDesde}
+                        onChange={(event) => {
+                          setFechaDesde(event.target.value);
+                          setActiveDatePreset('personalizado');
+                        }}
+                        className="w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white outline-none transition focus:border-blue-400"
+                      />
+                    </label>
+
+                    <label className="space-y-1 text-xs uppercase tracking-[0.12em] text-slate-300">
+                      <span>Hasta</span>
+                      <input
+                        type="date"
+                        value={fechaHasta}
+                        onChange={(event) => {
+                          setFechaHasta(event.target.value);
+                          setActiveDatePreset('personalizado');
+                        }}
+                        className="w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white outline-none transition focus:border-blue-400"
+                      />
+                    </label>
+
+                    <label className="space-y-1 text-xs uppercase tracking-[0.12em] text-slate-300 sm:col-span-1 lg:col-span-2">
+                      <span>Sucursal Activa</span>
+                      <select
+                        value={selectedBranch}
+                        onChange={(event) => setSelectedBranch(event.target.value)}
+                        className="w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white outline-none transition focus:border-blue-400"
+                      >
+                        <option value="all">Todas las sucursales</option>
+                        {sucursales.map((sucursal) => (
+                          <option key={String(sucursal.id)} value={String(sucursal.id)}>
+                            {sucursal.nombre}
+                          </option>
+                        ))}
+                        <option value="corporativo">Gastos corporativos</option>
+                      </select>
+                    </label>
+                  </div>
+                </div>
+              </div>
+
               <div className="grid gap-3 md:grid-cols-3">
                 <div className="rounded-2xl border border-slate-800 bg-slate-900 p-4">
                   <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Gastos Aplicados</p>
@@ -979,6 +1520,90 @@ export default function Home() {
 
           {activeSection === 'consolidado' && (
             <section className="space-y-4">
+              <div className="rounded-2xl border border-slate-800 bg-slate-900 p-4 shadow-xl shadow-slate-950/30">
+                <div className="flex flex-col gap-3">
+                  <div className="flex flex-wrap items-end justify-between gap-3">
+                    <label className="space-y-1 text-xs uppercase tracking-[0.12em] text-slate-300">
+                      <span>Mes a Mes</span>
+                      <input
+                        type="month"
+                        value={monthFilter}
+                        onChange={(event) => applyMonthFilter(event.target.value)}
+                        className="rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white outline-none transition focus:border-blue-400"
+                      />
+                    </label>
+
+                    <div className="flex items-center gap-2 overflow-x-auto py-1 no-scrollbar">
+                      {[
+                        { key: 'hoy', label: 'Hoy' },
+                        { key: 'semana', label: 'Esta Semana' },
+                        { key: 'mes', label: 'Este Mes' },
+                        { key: 'anio', label: 'Este Ano' },
+                        { key: 'personalizado', label: 'Rango Libre' },
+                      ].map((preset) => (
+                        <button
+                          key={preset.key}
+                          type="button"
+                          onClick={() => applyDatePreset(preset.key as 'hoy' | 'semana' | 'mes' | 'anio' | 'personalizado')}
+                          className={`whitespace-nowrap rounded-xl border px-3 py-2 text-xs font-semibold uppercase tracking-[0.12em] transition ${
+                            activeDatePreset === preset.key
+                              ? 'border-blue-500/40 bg-blue-500/10 text-blue-200'
+                              : 'border-slate-700 bg-slate-950 text-slate-300 hover:border-blue-400 hover:text-white'
+                          }`}
+                        >
+                          {preset.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+                    <label className="space-y-1 text-xs uppercase tracking-[0.12em] text-slate-300">
+                      <span>Desde</span>
+                      <input
+                        type="date"
+                        value={fechaDesde}
+                        onChange={(event) => {
+                          setFechaDesde(event.target.value);
+                          setActiveDatePreset('personalizado');
+                        }}
+                        className="w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white outline-none transition focus:border-blue-400"
+                      />
+                    </label>
+
+                    <label className="space-y-1 text-xs uppercase tracking-[0.12em] text-slate-300">
+                      <span>Hasta</span>
+                      <input
+                        type="date"
+                        value={fechaHasta}
+                        onChange={(event) => {
+                          setFechaHasta(event.target.value);
+                          setActiveDatePreset('personalizado');
+                        }}
+                        className="w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white outline-none transition focus:border-blue-400"
+                      />
+                    </label>
+
+                    <label className="space-y-1 text-xs uppercase tracking-[0.12em] text-slate-300 sm:col-span-1 lg:col-span-2">
+                      <span>Sucursal Activa</span>
+                      <select
+                        value={selectedBranch}
+                        onChange={(event) => setSelectedBranch(event.target.value)}
+                        className="w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white outline-none transition focus:border-blue-400"
+                      >
+                        <option value="all">Todas las sucursales</option>
+                        {sucursales.map((sucursal) => (
+                          <option key={String(sucursal.id)} value={String(sucursal.id)}>
+                            {sucursal.nombre}
+                          </option>
+                        ))}
+                        <option value="corporativo">Gastos corporativos</option>
+                      </select>
+                    </label>
+                  </div>
+                </div>
+              </div>
+
               <div className="grid gap-3 md:grid-cols-3">
                 <div className="rounded-2xl border border-slate-800 bg-slate-900 p-4">
                   <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Ventas Totales del Período</p>
@@ -1004,9 +1629,9 @@ export default function Home() {
                   </thead>
                   <tbody>
                     {[
-                      { label: 'Salarios Quincena 1 (09 al 22)', value: salariosQ1 },
-                      { label: 'Salarios Quincena 2 (23 al 08)', value: salariosQ2 },
-                      { label: 'Subtotal Salarios', value: salariosQ1 + salariosQ2 },
+                      { label: 'Salarios Quincena 1 (09 al 22)', value: salariosConsolidadoQ1 },
+                      { label: 'Salarios Quincena 2 (23 al 08)', value: salariosConsolidadoQ2 },
+                      { label: 'Subtotal Salarios', value: salariosConsolidadoQ1 + salariosConsolidadoQ2 },
                       { label: 'Pagos Totales de Rentas', value: gastosPorCategoria.RENTAS },
                       { label: 'Pago Total de Luz', value: gastosPorCategoria.LUZ },
                       { label: 'Pago Total de Regencia', value: gastosPorCategoria.REGENCIA },
@@ -1032,44 +1657,6 @@ export default function Home() {
               </div>
             </section>
           )}
-
-          {activeSection === 'conciliacion' && (
-            <section className="space-y-4">
-              <div>
-                <button
-                  type="button"
-                  onClick={() => setModalDepositoAbierto(true)}
-                  className="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-500"
-                >
-                  <Plus className="h-4 w-4" />
-                  Registrar Boleta de Depósito
-                </button>
-              </div>
-
-              <div className="overflow-x-auto rounded-2xl border border-slate-800 bg-slate-900/70">
-                <table className="min-w-[960px] w-full text-left text-sm">
-                  <thead className="bg-slate-950/80 text-slate-300">
-                    <tr>
-                      <th className="px-4 py-3">Sucursal</th>
-                      <th className="px-4 py-3 text-right">Total Recaudado</th>
-                      <th className="px-4 py-3 text-right">Total Depositado</th>
-                      <th className="px-4 py-3 text-right">Diferencia</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {conciliacionRows.map((row) => (
-                      <tr key={row.sucursalId} className="border-t border-slate-800">
-                        <td className="px-4 py-3 text-slate-200">{row.sucursal}</td>
-                        <td className="px-4 py-3 text-right font-mono text-emerald-400">{formatCurrency(row.totalRecaudado)}</td>
-                        <td className="px-4 py-3 text-right font-mono text-emerald-400">{formatCurrency(row.totalDepositado)}</td>
-                        <td className="px-4 py-3 text-right font-mono text-emerald-400">{formatCurrency(row.diferencia)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </section>
-          )}
         </div>
       </div>
 
@@ -1086,15 +1673,6 @@ export default function Home() {
       <ModalNuevoGasto
         isOpen={modalGastoAbierto}
         onClose={() => setModalGastoAbierto(false)}
-        onSuccess={() => {
-          void fetchData();
-        }}
-        sucursales={sucursales}
-      />
-
-      <ModalRegistrarDeposito
-        isOpen={modalDepositoAbierto}
-        onClose={() => setModalDepositoAbierto(false)}
         onSuccess={() => {
           void fetchData();
         }}
