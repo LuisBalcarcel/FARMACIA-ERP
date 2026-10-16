@@ -4,23 +4,33 @@ import { Loader2, Store, X } from 'lucide-react';
 import { useEffect, useState, type FormEvent } from 'react';
 import { supabase } from '@/lib/supabase';
 
+type Sucursal = {
+  id: string | number;
+  nombre: string;
+  direccion?: string | null;
+  es_matriz?: boolean;
+  activa?: boolean;
+};
+
 type ModalNuevaSucursalProps = {
   isOpen: boolean;
   onClose: () => void;
-  onSuccess: () => void;
+  onSuccess: (sucursal: Sucursal) => void;
 };
 
 export default function ModalNuevaSucursal({ isOpen, onClose, onSuccess }: ModalNuevaSucursalProps) {
   const [nombre, setNombre] = useState('');
   const [direccion, setDireccion] = useState('');
-  const [telefono, setTelefono] = useState('');
+  const [esMatriz, setEsMatriz] = useState(false);
+  const [activa, setActiva] = useState(true);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
   const resetForm = () => {
     setNombre('');
     setDireccion('');
-    setTelefono('');
+    setEsMatriz(false);
+    setActiva(true);
     setError('');
   };
 
@@ -50,22 +60,40 @@ export default function ModalNuevaSucursal({ isOpen, onClose, onSuccess }: Modal
     setError('');
 
     try {
-      const { error: insertError } = await supabase.from('sucursales').insert({
-        nombre: nombreLimpio.toUpperCase(),
-        direccion: direccion.trim() || null,
-        telefono: telefono.trim() || null,
-      });
+      const { data, error: insertError } = await supabase
+        .from('sucursales')
+        .insert([
+          {
+            nombre: nombreLimpio.toUpperCase(),
+            direccion: direccion.trim() || null,
+            es_matriz: esMatriz,
+            activa,
+          },
+        ])
+        .select();
 
       if (insertError) {
         throw insertError;
       }
 
+      const nuevaSucursal = data?.[0];
+      if (!nuevaSucursal) {
+        throw new Error('La sucursal fue registrada, pero la respuesta de Supabase no incluyó la fila creada.');
+      }
+
       resetForm();
-      onSuccess();
+      onSuccess(nuevaSucursal as Sucursal);
       onClose();
     } catch (insertError) {
       console.error('Error al crear la sucursal:', insertError);
-      setError('No se pudo registrar la farmacia. Verifica la información e intenta nuevamente.');
+      const detalle =
+        insertError instanceof Error
+          ? insertError.message
+          : typeof insertError === 'object' && insertError !== null && 'message' in insertError
+            ? String((insertError as { message?: string }).message ?? '')
+            : '';
+
+      setError(detalle ? `No se pudo registrar la farmacia. ${detalle}` : 'No se pudo registrar la farmacia. Verifica la información e intenta nuevamente.');
     } finally {
       setLoading(false);
     }
@@ -100,6 +128,7 @@ export default function ModalNuevaSucursal({ isOpen, onClose, onSuccess }: Modal
               type="text"
               value={nombre}
               onChange={(event) => setNombre(event.target.value.toUpperCase())}
+              required
               className="w-full rounded-xl border border-slate-600 bg-slate-800 px-3 py-2.5 text-sm text-white outline-none transition focus:border-orange-400"
               placeholder="AMATITLAN"
               autoComplete="organization"
@@ -108,25 +137,36 @@ export default function ModalNuevaSucursal({ isOpen, onClose, onSuccess }: Modal
 
           <label className="block space-y-2 text-sm text-slate-200">
             <span>Dirección / Ubicación</span>
-            <input
-              type="text"
+            <textarea
               value={direccion}
               onChange={(event) => setDireccion(event.target.value)}
+              rows={3}
               className="w-full rounded-xl border border-slate-600 bg-slate-800 px-3 py-2.5 text-sm text-white outline-none transition focus:border-orange-400"
               placeholder="Calle principal 12-34, zona 1"
             />
           </label>
 
-          <label className="block space-y-2 text-sm text-slate-200">
-            <span>Teléfono / Contacto</span>
-            <input
-              type="text"
-              value={telefono}
-              onChange={(event) => setTelefono(event.target.value)}
-              className="w-full rounded-xl border border-slate-600 bg-slate-800 px-3 py-2.5 text-sm text-white outline-none transition focus:border-orange-400"
-              placeholder="+502 1234-5678"
-            />
-          </label>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <label className="flex items-center justify-between rounded-xl border border-slate-700 bg-slate-800 px-3 py-3 text-sm text-slate-200">
+              <span>¿Es sucursal Matriz?</span>
+              <input
+                type="checkbox"
+                checked={esMatriz}
+                onChange={(event) => setEsMatriz(event.target.checked)}
+                className="h-4 w-4 accent-orange-500"
+              />
+            </label>
+
+            <label className="flex items-center justify-between rounded-xl border border-slate-700 bg-slate-800 px-3 py-3 text-sm text-slate-200">
+              <span>Estado Activo</span>
+              <input
+                type="checkbox"
+                checked={activa}
+                onChange={(event) => setActiva(event.target.checked)}
+                className="h-4 w-4 accent-orange-500"
+              />
+            </label>
+          </div>
 
           {error ? (
             <div className="rounded-xl border border-rose-500/40 bg-rose-500/10 px-3 py-2 text-sm text-rose-200">
@@ -150,12 +190,12 @@ export default function ModalNuevaSucursal({ isOpen, onClose, onSuccess }: Modal
               {loading ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin" />
-                  Creando...
+                  Guardando...
                 </>
               ) : (
                 <>
                   <Store className="h-4 w-4" />
-                  Crear Farmacia
+                  Guardar Farmacia
                 </>
               )}
             </button>

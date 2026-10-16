@@ -8,6 +8,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import VentasRecaudacionesDashboard from '../components/VentasRecaudacionesDashboard';
 import ModalAnularRegistro from '@/components/ModalAnularRegistro';
 import ModalNuevoGasto from '@/components/ModalNuevoGasto';
+import ModalNuevaSucursal from '@/components/ModalNuevaSucursal';
 import ModalRegistrarDeposito from '@/components/ModalRegistrarDeposito';
 import Sidebar, { type SectionKey } from '@/components/Sidebar';
 import {
@@ -29,6 +30,8 @@ const ModalNuevaVentaDynamic = NextDynamic(() => import('@/components/ModalNueva
 type Sucursal = {
   id: string | number;
   nombre: string;
+  direccion?: string | null;
+  es_matriz?: boolean;
   activa?: boolean;
 };
 
@@ -142,6 +145,7 @@ export default function Home() {
   const [modalVentaAbierto, setModalVentaAbierto] = useState(false);
   const [modalGastoAbierto, setModalGastoAbierto] = useState(false);
   const [modalDepositoAbierto, setModalDepositoAbierto] = useState(false);
+  const [modalSucursalAbierto, setModalSucursalAbierto] = useState(false);
   const [itemAAnular, setItemAAnular] = useState<ItemAAnular | null>(null);
 
   const [sucursales, setSucursales] = useState<Sucursal[]>([]);
@@ -187,7 +191,7 @@ export default function Home() {
 
     try {
       const [sucursalesResponse, empleadosResponse, ventasResponse, gastosResponse] = await Promise.all([
-        supabase.from('sucursales').select('id, nombre, activa').order('nombre', { ascending: true }),
+        supabase.from('sucursales').select('id, nombre, direccion, es_matriz, activa').order('nombre', { ascending: true }),
         supabase.from('empleados').select('id, sucursal_id, nombre_completo, area, activo').order('nombre_completo', { ascending: true }),
         supabase
           .from('ventas')
@@ -611,6 +615,18 @@ export default function Home() {
     await fetchData();
   };
 
+  const handleSucursalCreated = (nuevaSucursal: Sucursal) => {
+    setSucursales((current) => {
+      const next = [...current, nuevaSucursal];
+      return next.sort((a, b) => a.nombre.localeCompare(b.nombre, 'es', { sensitivity: 'base' }));
+    });
+
+    setModalSucursalAbierto(false);
+    if (typeof window !== 'undefined') {
+      window.alert('Sucursal registrada con éxito');
+    }
+  };
+
   const sectionTitleMap: Record<SectionKey, string> = {
     ventas: 'Ventas y Recaudaciones',
     planilla: 'Planilla y Bonificaciones',
@@ -658,6 +674,15 @@ export default function Home() {
             </div>
 
             <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setModalSucursalAbierto(true)}
+                className="inline-flex items-center justify-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition-all hover:bg-indigo-500"
+              >
+                <Plus className="h-4 w-4" />
+                + Nueva Farmacia / Sucursal
+              </button>
+
               <button
                 type="button"
                 onClick={() => setModalVentaAbierto(true)}
@@ -743,6 +768,12 @@ export default function Home() {
               />
             </div>
           )}
+
+          <ModalNuevaSucursal
+            isOpen={modalSucursalAbierto}
+            onClose={() => setModalSucursalAbierto(false)}
+            onSuccess={handleSucursalCreated}
+          />
 
           {activeSection === 'planilla' && (
             <section className="space-y-4">
