@@ -22,6 +22,38 @@ const categoriasGasto = CATEGORIAS_GASTO.map((categoria) => ({
   label: categoria.replace(/_/g, ' '),
 }));
 
+const categoriaParaSupabase: Record<CategoriaGasto, string> = {
+  RENTAS: 'renta',
+  LUZ: 'luz',
+  REGENCIA: 'regencia',
+  SEGUROS: 'seguros',
+  REPARACION_VEHICULOS: 'camionetas',
+  CUOTAS_IGSS: 'cuotas_igss',
+  BASURA: 'basura',
+  MULTAS: 'multas',
+  REPARACION_FARMACIAS: 'reparaciones_farmacias',
+  PAGOS_TERCEROS_ALBANIL: 'pagos_terceros_albanil',
+  EQUIPO_COMPUTO_CAMARAS: 'equipo_computo_camaras',
+  VARIOS: 'varios',
+};
+
+const getSupabaseErrorDetail = (error: unknown) => {
+  if (typeof error !== 'object' || error === null) {
+    return '';
+  }
+
+  const supabaseError = error as {
+    message?: string;
+    details?: string;
+    hint?: string;
+    code?: string;
+  };
+
+  return [supabaseError.message, supabaseError.details, supabaseError.hint, supabaseError.code ? `code: ${supabaseError.code}` : '']
+    .filter((value) => Boolean(value && String(value).trim()))
+    .join(' | ');
+};
+
 const getToday = () => {
   if (typeof window === 'undefined') {
     return '';
@@ -119,13 +151,14 @@ export default function ModalNuevoGasto({
       }
 
       const categoriaNormalizada = normalizeCategoria(categoria);
+      const categoriaParaGuardar = categoriaParaSupabase[categoriaNormalizada] ?? categoriaNormalizada.toLowerCase();
       const descripcionNormalizada = esRangoRecurrente
         ? buildDescripcionConVigencia(descripcion.trim(), fechaInicio, fechaFinVigencia, prorratear)
         : descripcion.trim();
 
       const payloadBase = {
         sucursal_id: sucursalUuid,
-        categoria: categoriaNormalizada,
+        categoria: categoriaParaGuardar,
         descripcion: descripcionNormalizada,
         fecha_gasto: fechaGasto,
         monto: montoNumero,
@@ -159,7 +192,12 @@ export default function ModalNuevoGasto({
       onClose();
     } catch (insertError) {
       console.error('Error al guardar el gasto:', insertError);
-      setError('No se pudo registrar el gasto. Revisa la información e intenta nuevamente.');
+      const detalleError = getSupabaseErrorDetail(insertError);
+      setError(
+        detalleError
+          ? `No se pudo registrar el gasto. ${detalleError}`
+          : 'No se pudo registrar el gasto. Revisa la información e intenta nuevamente.',
+      );
     } finally {
       setLoading(false);
     }

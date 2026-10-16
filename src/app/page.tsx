@@ -105,30 +105,6 @@ type PlanillaRow = {
   salarioNeto: number;
 };
 
-const fallbackSucursales: Sucursal[] = [
-  { id: '11111111-1111-4111-8111-111111111111', nombre: 'Sucursal Central' },
-  { id: '22222222-2222-4222-8222-222222222222', nombre: 'Sucursal Norte' },
-  { id: '33333333-3333-4333-8333-333333333333', nombre: 'Sucursal Sur' },
-];
-
-const fallbackEmpleados: Empleado[] = [
-  { id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', nombre_completo: 'María López', area: 'Ventas', sucursal_id: '11111111-1111-4111-8111-111111111111', activo: true },
-  { id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', nombre_completo: 'Carlos Ruiz', area: 'Mostrador', sucursal_id: '11111111-1111-4111-8111-111111111111', activo: true },
-  { id: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc', nombre_completo: 'Ana Gómez', area: 'Farmacia', sucursal_id: '22222222-2222-4222-8222-222222222222', activo: true },
-  { id: 'dddddddd-dddd-4ddd-8ddd-dddddddddddd', nombre_completo: 'José Pérez', area: 'Regencia', sucursal_id: '33333333-3333-4333-8333-333333333333', activo: true },
-];
-
-const fallbackVentas: Venta[] = [
-  { id: 1, sucursal_id: '11111111-1111-4111-8111-111111111111', empleado_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', area: 'Ventas', fecha_venta: '2026-10-10', monto_bruto: 8200, anulado: false },
-  { id: 2, sucursal_id: '22222222-2222-4222-8222-222222222222', empleado_id: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc', area: 'Farmacia', fecha_venta: '2026-10-11', monto_bruto: 6300, anulado: false },
-  { id: 3, sucursal_id: '33333333-3333-4333-8333-333333333333', empleado_id: 'dddddddd-dddd-4ddd-8ddd-dddddddddddd', area: 'Regencia', fecha_venta: '2026-10-12', monto_bruto: 5400, anulado: false },
-];
-
-const fallbackGastos: Gasto[] = [
-  { id: 1, sucursal_id: '11111111-1111-4111-8111-111111111111', categoria: 'LUZ', descripcion: 'Servicio eléctrico mensual', fecha_gasto: '2026-10-09', monto: 1250, es_gasto_general: false, anulado: false },
-  { id: 2, sucursal_id: null, categoria: 'SEGUROS', descripcion: 'Seguro anual corporativo', fecha_gasto: '2026-10-01', monto: 1750, es_gasto_general: true, anulado: false },
-];
-
 const formatCurrency = (value: number) =>
   `Q ${value.toLocaleString('es-GT', {
     minimumFractionDigits: 2,
@@ -168,10 +144,10 @@ export default function Home() {
   const [modalDepositoAbierto, setModalDepositoAbierto] = useState(false);
   const [itemAAnular, setItemAAnular] = useState<ItemAAnular | null>(null);
 
-  const [sucursales, setSucursales] = useState<Sucursal[]>(fallbackSucursales);
-  const [empleados, setEmpleados] = useState<Empleado[]>(fallbackEmpleados);
-  const [ventas, setVentas] = useState<Venta[]>(fallbackVentas);
-  const [gastos, setGastos] = useState<Gasto[]>(fallbackGastos);
+  const [sucursales, setSucursales] = useState<Sucursal[]>([]);
+  const [empleados, setEmpleados] = useState<Empleado[]>([]);
+  const [ventas, setVentas] = useState<Venta[]>([]);
+  const [gastos, setGastos] = useState<Gasto[]>([]);
   const [depositosRemesas, setDepositosRemesas] = useState<DepositoRemesa[]>([]);
 
   const [selectedBranch, setSelectedBranch] = useState('all');
@@ -232,27 +208,32 @@ export default function Home() {
         (sucursal) => sucursal.activa !== false,
       );
 
-      setSucursales(activeSucursales.length > 0 ? activeSucursales : fallbackSucursales);
-      setEmpleados((empleadosResponse.data as Empleado[] | null)?.length ? (empleadosResponse.data as Empleado[]) : fallbackEmpleados);
-      setVentas((ventasResponse.data as Venta[] | null)?.length ? (ventasResponse.data as Venta[]) : fallbackVentas);
-      setGastos((gastosResponse.data as Gasto[] | null)?.length ? (gastosResponse.data as Gasto[]) : fallbackGastos);
+      setSucursales(activeSucursales);
+      setEmpleados((empleadosResponse.data as Empleado[] | null) ?? []);
+      setVentas((ventasResponse.data as Venta[] | null) ?? []);
+      setGastos((gastosResponse.data as Gasto[] | null) ?? []);
 
-      const { data: depositosData, error: depositosError } = await supabase
-        .from('depositos_remesas')
-        .select('id, sucursal_id, banco_receptor, no_boleta, fecha_deposito, fecha_inicio_corte, fecha_fin_corte, monto_depositado')
-        .order('fecha_deposito', { ascending: false });
+      try {
+        const { data: depositosData, error: depositosError } = await supabase
+          .from('depositos_remesas')
+          .select('*')
+          .order('fecha_deposito', { ascending: false });
 
-      if (!depositosError && depositosData) {
-        setDepositosRemesas(depositosData as DepositoRemesa[]);
-      } else {
+        if (depositosError) {
+          throw depositosError;
+        }
+
+        setDepositosRemesas((depositosData as DepositoRemesa[] | null) ?? []);
+      } catch (depositosError) {
+        console.error('Error cargando depósitos/remesas:', depositosError);
         setDepositosRemesas([]);
       }
     } catch (error) {
       console.error('Error cargando datos:', error);
-      setSucursales(fallbackSucursales);
-      setEmpleados(fallbackEmpleados);
-      setVentas(fallbackVentas);
-      setGastos(fallbackGastos);
+      setSucursales([]);
+      setEmpleados([]);
+      setVentas([]);
+      setGastos([]);
       setDepositosRemesas([]);
     } finally {
       setIsLoadingData(false);
@@ -638,6 +619,8 @@ export default function Home() {
     conciliacion: 'Conciliación Bancaria',
   };
 
+  const ventasSinDatos = sucursales.length === 0 && ventas.length === 0;
+
   if (!mounted) {
     return <div className="min-h-screen bg-slate-950" />;
   }
@@ -718,36 +701,47 @@ export default function Home() {
           )}
 
           {activeSection === 'ventas' && (
-            <VentasRecaudacionesDashboard
-              sucursales={sucursales}
-              resumenPorSucursal={ventasDashboard.resumenPorSucursal}
-              ventasActivas={ventasDashboard.ventasActivas}
-              totalGeneral={ventasDashboard.totalGeneral}
-              selectedFarmaciaId={selectedFarmaciaId}
-              onSelectFarmacia={setSelectedFarmaciaId}
-              onAbrirRegistroVenta={() => setModalVentaAbierto(true)}
-              onVerHistorial={setSelectedFarmaciaId}
-              fechaDesde={fechaDesde}
-              fechaHasta={fechaHasta}
-              onChangeFechaDesde={(value: string) => {
-                setFechaDesde(value);
-                setActiveDatePreset('personalizado');
-              }}
-              onChangeFechaHasta={(value: string) => {
-                setFechaHasta(value);
-                setActiveDatePreset('personalizado');
-              }}
-              moneyMode={moneyFilterMode}
-              onMoneyModeChange={setMoneyFilterMode}
-              moneyValue={moneyFilterValue}
-              onMoneyValueChange={setMoneyFilterValue}
-              activeDatePreset={activeDatePreset}
-              onApplyDatePreset={applyDatePreset}
-              isFrozen={isFrozen}
-              onToggleFreeze={() => setIsFrozen((value) => !value)}
-              cascadeGlobal={cascadeGlobal}
-              cascadePorSucursal={cascadePorSucursal}
-            />
+            <div className="space-y-4">
+              {ventasSinDatos && (
+                <div className="rounded-2xl border border-slate-800 bg-slate-900 p-5 text-sm text-slate-300 shadow-xl shadow-slate-950/20">
+                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-blue-300">Sin datos disponibles</p>
+                  <p className="mt-3 text-base text-slate-100">
+                    No hay sucursales ni cortes registrados en este período. Registra tu primera venta o carga el catálogo.
+                  </p>
+                </div>
+              )}
+
+              <VentasRecaudacionesDashboard
+                sucursales={sucursales}
+                resumenPorSucursal={ventasDashboard.resumenPorSucursal}
+                ventasActivas={ventasDashboard.ventasActivas}
+                totalGeneral={ventasDashboard.totalGeneral}
+                selectedFarmaciaId={selectedFarmaciaId}
+                onSelectFarmacia={setSelectedFarmaciaId}
+                onAbrirRegistroVenta={() => setModalVentaAbierto(true)}
+                onVerHistorial={setSelectedFarmaciaId}
+                fechaDesde={fechaDesde}
+                fechaHasta={fechaHasta}
+                onChangeFechaDesde={(value: string) => {
+                  setFechaDesde(value);
+                  setActiveDatePreset('personalizado');
+                }}
+                onChangeFechaHasta={(value: string) => {
+                  setFechaHasta(value);
+                  setActiveDatePreset('personalizado');
+                }}
+                moneyMode={moneyFilterMode}
+                onMoneyModeChange={setMoneyFilterMode}
+                moneyValue={moneyFilterValue}
+                onMoneyValueChange={setMoneyFilterValue}
+                activeDatePreset={activeDatePreset}
+                onApplyDatePreset={applyDatePreset}
+                isFrozen={isFrozen}
+                onToggleFreeze={() => setIsFrozen((value) => !value)}
+                cascadeGlobal={cascadeGlobal}
+                cascadePorSucursal={cascadePorSucursal}
+              />
+            </div>
           )}
 
           {activeSection === 'planilla' && (
