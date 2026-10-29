@@ -402,7 +402,7 @@ export default function ReporteRedistribucion({ ventas, gastos, fechaDesde, fech
           </div>
 
           <div className="rounded-2xl border border-slate-800 bg-slate-900/70 p-4">
-            <h3 className="text-lg font-semibold text-white">Cuentas ahorro / aguinaldo</h3>
+            <h3 className="text-lg font-semibold text-white">Cuentas de Ahorro y Aguinaldo</h3>
             <div className="mt-4 overflow-hidden rounded-xl border border-slate-800">
               <table className="min-w-full text-left text-sm">
                 <tbody>

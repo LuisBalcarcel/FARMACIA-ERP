@@ -122,8 +122,8 @@ export default function ModalConfigurarMetas({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 px-4 backdrop-blur-sm">
-      <div className="relative w-full max-w-xl rounded-2xl border border-slate-700 bg-slate-900 shadow-2xl shadow-slate-950/60">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 px-3 py-4 backdrop-blur-sm">
+      <div className="relative mx-auto max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl border border-slate-700 bg-slate-900 shadow-2xl shadow-slate-950/60">
         <div className="flex items-center justify-between border-b border-slate-700 px-5 py-4">
           <div>
             <p className="text-xs font-medium uppercase tracking-[0.2em] text-slate-300">Configuración</p>

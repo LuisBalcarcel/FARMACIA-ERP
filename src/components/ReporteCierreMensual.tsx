@@ -212,7 +212,7 @@ export default function ReporteCierreMensual({ ventas, gastos, fechaDesde, fecha
                 </thead>
                 <tbody>
                   <tr className="border-t border-slate-800 bg-slate-900/30">
-                    <td className="px-3 py-3 text-slate-200">Salarios / Planillas</td>
+                    <td className="px-3 py-3 text-slate-200">Salarios y Planillas</td>
                     <td className="px-3 py-3 text-right font-mono text-orange-300">{formatCurrency(totalSalarios)}</td>
                   </tr>
 
@@ -303,7 +303,7 @@ export default function ReporteCierreMensual({ ventas, gastos, fechaDesde, fecha
           </div>
 
           <div className="rounded-2xl border border-slate-800 bg-slate-900/70 p-4">
-            <h3 className="text-lg font-semibold text-white">Cuentas Aguinaldo / Ahorro</h3>
+            <h3 className="text-lg font-semibold text-white">Cuentas de Ahorro y Aguinaldo</h3>
             <div className="mt-4 overflow-hidden rounded-xl border border-slate-800">
               <table className="min-w-full text-left text-sm">
                 <tbody>

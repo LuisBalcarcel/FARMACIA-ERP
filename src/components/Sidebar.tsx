@@ -21,10 +21,10 @@ type SidebarProps = {
 };
 
 const navigationItems: Array<{ key: SectionKey; label: string; description: string; icon: typeof LayoutGrid }> = [
-  { key: 'ventas', label: 'Ventas y Recaudaciones', description: 'Núcleo de ventas por período', icon: LayoutGrid },
+  { key: 'ventas', label: 'Ventas y Arqueos', description: 'Núcleo de ventas por período', icon: LayoutGrid },
   { key: 'planilla', label: 'Planilla y Bonificaciones', description: 'Cortes quincenales e IGSS', icon: ReceiptText },
-  { key: 'gastos', label: 'Gastos y Gastos Fijos', description: 'Registro con vigencias amplias', icon: LibraryBig },
-  { key: 'consolidado', label: 'Consolidado Mensual de Gastos', description: 'Regla del tercio y balance', icon: Scale },
+  { key: 'gastos', label: 'Gastos', description: 'Registro con vigencias amplias', icon: LibraryBig },
+  { key: 'consolidado', label: 'Consolidado de Gastos', description: 'Regla del tercio y balance', icon: Scale },
 ];
 
 export default function Sidebar({
@@ -77,10 +77,10 @@ export default function Sidebar({
                 onQuickAction('venta');
                 onClose();
               }}
-              className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-orange-500 px-3 py-2.5 text-sm font-semibold text-white shadow-lg shadow-orange-900/30 transition hover:bg-orange-400"
+                className="sidebar-primary-action inline-flex w-full items-center justify-center gap-2 rounded-xl bg-orange-600 px-3 py-2.5 text-sm font-bold text-white shadow-md shadow-orange-500/20 transition hover:bg-orange-700"
             >
               <Plus className="h-4 w-4" />
-              + Registrar Venta / Corte
+              Registrar Venta
             </button>
 
             <button
@@ -89,10 +89,10 @@ export default function Sidebar({
                 onQuickAction('gasto');
                 onClose();
               }}
-              className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-3 py-2.5 text-sm font-semibold text-white shadow-lg shadow-blue-900/30 transition hover:bg-blue-500"
+                className="sidebar-primary-action inline-flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-3 py-2.5 text-sm font-bold text-white shadow-md shadow-blue-500/20 transition hover:bg-blue-700"
             >
               <Plus className="h-4 w-4" />
-              + Registrar Gasto
+              Registrar Gasto
             </button>
           </div>
 
@@ -107,28 +107,32 @@ export default function Sidebar({
                   type="button"
                   onClick={() => handleSectionSelect(item.key)}
                   className={`flex w-full items-start gap-3 rounded-xl border px-3 py-3 text-left transition ${
-                    isActive
-                      ? 'border-orange-500/40 bg-orange-500/10 text-orange-50 shadow-inner shadow-orange-500/10'
-                      : 'border-slate-800 bg-slate-900/60 text-slate-300 hover:border-slate-700 hover:bg-slate-800/80 hover:text-white'
+                      isActive
+                      ? 'sidebar-nav-active border-2 border-orange-500 bg-orange-500/10 text-orange-50 shadow-inner shadow-orange-500/10'
+                      : 'sidebar-nav-inactive border border-slate-800 bg-slate-900/60 text-slate-300 hover:border-slate-700 hover:bg-slate-800/80 hover:text-white'
                   }`}
                 >
                   <span
                     className={`mt-0.5 inline-flex h-8 w-8 items-center justify-center rounded-lg ${
-                      isActive ? 'bg-orange-500/20 text-orange-200' : 'bg-slate-800 text-slate-300'
+                      isActive ? 'sidebar-active-icon bg-orange-500 text-white' : 'sidebar-inactive-icon bg-slate-800 text-slate-300'
                     }`}
                   >
                     <Icon className="h-4 w-4" />
                   </span>
                   <span className="min-w-0">
-                    <span className="block text-sm font-medium">{item.label}</span>
-                    <span className="mt-1 block text-[11px] text-slate-400">{item.description}</span>
+                    <span className={`block text-sm ${isActive ? 'sidebar-active-title font-bold text-orange-50' : 'sidebar-inactive-title font-semibold text-slate-100'}`}>
+                      {item.label}
+                    </span>
+                    <span className={`mt-1 block text-xs ${isActive ? 'sidebar-active-description font-medium text-slate-400' : 'sidebar-inactive-description text-slate-400'}`}>
+                      {item.description}
+                    </span>
                   </span>
                 </button>
               );
             })}
           </nav>
         </div>
-        <div className="border-t border-slate-800 pt-4 text-[11px] text-slate-500">
+        <div className="border-t border-slate-800 pb-6 pt-4 text-[11px] text-slate-500">
           Motor contable ERP v2
         </div>
       </aside>

@@ -140,7 +140,7 @@ export default function ModalRegistrarDeposito({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 px-3 py-4 backdrop-blur-sm">
-      <div className="relative w-[calc(100%-1rem)] max-w-2xl max-h-[88vh] overflow-y-auto rounded-2xl border border-slate-700 bg-slate-900 shadow-2xl shadow-slate-950/60">
+      <div className="relative mx-auto max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl border border-slate-700 bg-slate-900 shadow-2xl shadow-slate-950/60">
         <div className="flex items-center justify-between border-b border-slate-700 px-5 py-4">
           <div>
             <p className="text-xs font-medium uppercase tracking-[0.2em] text-cyan-300">Conciliación bancaria</p>
@@ -159,7 +159,7 @@ export default function ModalRegistrarDeposito({
         <form onSubmit={handleSubmit} className="space-y-4 px-5 py-5">
           <div className="grid gap-4 md:grid-cols-2">
             <label className="space-y-2 text-sm text-slate-200">
-              <span>Sucursal / Farmacia</span>
+              <span>Farmacia</span>
               <select
                 value={sucursalId}
                 onChange={(event) => setSucursalId(event.target.value)}
@@ -190,13 +190,13 @@ export default function ModalRegistrarDeposito({
           </div>
 
           <label className="space-y-2 text-sm text-slate-200">
-            <span>No. de Boleta / Referencia Bancaria</span>
+            <span>Referencia Bancaria</span>
             <input
               type="text"
               value={noBoleta}
               onChange={(event) => setNoBoleta(event.target.value)}
               className="w-full rounded-xl border border-slate-600 bg-slate-800 px-3 py-2.5 text-sm text-white outline-none transition focus:border-cyan-400"
-              placeholder="Ej. 7845213 / DEP-2026-001"
+              placeholder="Ej. 7845213 o DEP-2026-001"
             />
           </label>
 

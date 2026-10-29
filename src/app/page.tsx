@@ -3,10 +3,11 @@
 export const dynamic = 'force-dynamic';
 
 import NextDynamic from 'next/dynamic';
-import { Menu, Plus } from 'lucide-react';
+import { Menu, Moon, Pencil, Plus, Sun, Trash2 } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import VentasRecaudacionesDashboard from '../components/VentasRecaudacionesDashboard';
 import ModalAnularRegistro from '@/components/ModalAnularRegistro';
+import ModalGestionarFarmacias from '@/components/ModalGestionarFarmacias';
 import ModalNuevoGasto from '@/components/ModalNuevoGasto';
 import ModalNuevoColaborador from '@/components/ModalNuevoColaborador';
 import ModalNuevaSucursal from '@/components/ModalNuevaSucursal';
@@ -32,6 +33,8 @@ type Sucursal = {
   direccion?: string | null;
   es_matriz?: boolean;
   activa?: boolean;
+  usar_plantilla_fija?: boolean;
+  cantidad_colaboradores?: number | null;
 };
 
 type Empleado = {
@@ -154,6 +157,7 @@ type PlanillaRow = {
   bonoManual: number | null;
   bonoAplicado: number;
   esBonoManual: boolean;
+  divisorColaboradores: number | null;
   salarioNeto: number;
 };
 
@@ -165,6 +169,8 @@ type QuincenaRange = {
   fechaPago: string;
 };
 
+type ThemeMode = 'dark' | 'light';
+
 const formatCurrency = (value: number) =>
   new Intl.NumberFormat('es-GT', {
     style: 'currency',
@@ -173,6 +179,12 @@ const formatCurrency = (value: number) =>
 
 const formatDate = (value?: string) => {
   if (!value) return '-';
+
+  const dateOnly = value.slice(0, 10).match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (dateOnly) {
+    return `${dateOnly[3]}/${dateOnly[2]}/${dateOnly[1]}`;
+  }
+
   const parsed = new Date(value);
   if (Number.isNaN(parsed.getTime())) return value;
 
@@ -183,7 +195,12 @@ const formatDate = (value?: string) => {
   }).format(parsed);
 };
 
-const toIsoDate = (value: Date) => value.toISOString().slice(0, 10);
+const toIsoDate = (value: Date) => {
+  const year = value.getFullYear();
+  const month = String(value.getMonth() + 1).padStart(2, '0');
+  const day = String(value.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
 
 const getMonthRange = (monthRef: string) => {
   const [yearRaw, monthRaw] = monthRef.split('-');
@@ -216,11 +233,11 @@ const buildPlanillaRange = (monthRef: string, quincena: QuincenaKey): QuincenaRa
     };
   }
 
-  const nextMonthStart = new Date(monthStart.getFullYear(), monthStart.getMonth() + 1, 1);
+  const previousMonthStart = new Date(monthStart.getFullYear(), monthStart.getMonth() - 1, 1);
   return {
-    desde: toIsoDate(new Date(monthStart.getFullYear(), monthStart.getMonth(), 23)),
-    hasta: toIsoDate(new Date(nextMonthStart.getFullYear(), nextMonthStart.getMonth(), 8)),
-    fechaPago: toIsoDate(new Date(nextMonthStart.getFullYear(), nextMonthStart.getMonth(), 9)),
+    desde: toIsoDate(new Date(previousMonthStart.getFullYear(), previousMonthStart.getMonth(), 23)),
+    hasta: toIsoDate(new Date(monthStart.getFullYear(), monthStart.getMonth(), 8)),
+    fechaPago: toIsoDate(new Date(monthStart.getFullYear(), monthStart.getMonth(), 9)),
   };
 };
 
@@ -319,6 +336,8 @@ export default function Home() {
   const [modalVentaAbierto, setModalVentaAbierto] = useState(false);
   const [modalGastoAbierto, setModalGastoAbierto] = useState(false);
   const [modalSucursalAbierto, setModalSucursalAbierto] = useState(false);
+  const [modalGestionFarmaciasAbierto, setModalGestionFarmaciasAbierto] = useState(false);
+  const [sucursalEnEdicion, setSucursalEnEdicion] = useState<Sucursal | null>(null);
   const [modalColaboradorAbierto, setModalColaboradorAbierto] = useState(false);
   const [itemAAnular, setItemAAnular] = useState<ItemAAnular | null>(null);
 
@@ -345,13 +364,26 @@ export default function Home() {
   const [isConsolidandoPlanilla, setIsConsolidandoPlanilla] = useState(false);
   const [isLoadingData, setIsLoadingData] = useState(false);
   const [isFrozen, setIsFrozen] = useState(false);
+  const [themeMode, setThemeMode] = useState<ThemeMode>('dark');
 
   useEffect(() => {
     setMounted(true);
+    const savedTheme = window.localStorage.getItem('erp_theme_mode');
+    if (savedTheme === 'light' || savedTheme === 'dark') {
+      setThemeMode(savedTheme);
+    }
     const range = getDateRangeFromPreset('mes');
     setFechaDesde(range.from);
     setFechaHasta(range.to);
   }, []);
+
+  useEffect(() => {
+    document.documentElement.classList.toggle('theme-light', themeMode === 'light');
+    document.documentElement.style.colorScheme = themeMode;
+    if (mounted) {
+      window.localStorage.setItem('erp_theme_mode', themeMode);
+    }
+  }, [mounted, themeMode]);
 
   useEffect(() => {
     if (!mounted) return;
@@ -384,7 +416,10 @@ export default function Home() {
 
     try {
       const [sucursalesResponse, empleadosResponse, ventasResponse, gastosResponse] = await Promise.all([
-        supabase.from('sucursales').select('id, nombre, direccion, es_matriz, activa').order('nombre', { ascending: true }),
+        supabase
+          .from('sucursales')
+          .select('id, nombre, direccion, es_matriz, activa, usar_plantilla_fija, cantidad_colaboradores')
+          .order('nombre', { ascending: true }),
         supabase.from('empleados').select('id, sucursal_id, nombre_completo, area, activo').order('nombre_completo', { ascending: true }),
         supabase
           .from('ventas')
@@ -602,10 +637,9 @@ export default function Home() {
     return map;
   }, [colaboradoresActivos, makePlanillaKey, quincenaRange, sucursalAsignadaQuincena]);
 
-  const colaboradoresFarmaciaPorSucursal = useMemo(() => {
+  const colaboradoresAsignadosPorSucursal = useMemo(() => {
     const map: Record<string, number> = {};
     for (const colaborador of colaboradoresActivos) {
-      if (colaborador.area !== 'farmacia') continue;
       const assigned = sucursalAsignadaPorColaborador[String(colaborador.id)] ?? '';
       if (!assigned) continue;
       map[assigned] = (map[assigned] ?? 0) + 1;
@@ -625,11 +659,17 @@ export default function Home() {
       const ventasSucursal = ventasPorSucursalQuincena[sucursalAsignadaId] ?? 0;
       const bonoTotalSucursal = ventasSucursal * 0.01;
       const bonoDependientesSucursal = bonoTotalSucursal * 0.6;
-      const cantidadFarmacia = colaboradoresFarmaciaPorSucursal[sucursalAsignadaId] ?? 0;
+      const cantidadSucursal = colaboradoresAsignadosPorSucursal[sucursalAsignadaId] ?? 0;
+      const sucursalConfigurada = sucursales.find((item) => String(item.id) === sucursalAsignadaId);
+      const divisorColaboradores = sucursalAsignadaId
+        ? sucursalConfigurada?.usar_plantilla_fija === true && Number(sucursalConfigurada.cantidad_colaboradores) > 0
+          ? Number(sucursalConfigurada.cantidad_colaboradores)
+          : Math.max(1, cantidadSucursal)
+        : null;
 
       const bonoSugerido = (() => {
-        if (colaborador.area === 'farmacia') {
-          return cantidadFarmacia > 0 ? bonoDependientesSucursal / cantidadFarmacia : 0;
+        if (sucursalAsignadaId && divisorColaboradores) {
+          return bonoDependientesSucursal / divisorColaboradores;
         }
 
         if (colaborador.area === 'bodega') {
@@ -666,18 +706,23 @@ export default function Home() {
         bonoManual,
         bonoAplicado,
         esBonoManual,
+        divisorColaboradores,
         salarioNeto,
       };
     });
-  }, [colaboradoresActivos, sucursalAsignadaPorColaborador, ventasPorSucursalQuincena, colaboradoresFarmaciaPorSucursal, makePlanillaKey, quincenaRange, manualBonos, sucursales, totalVentasQuincena, totalColaboradoresBodega]);
+  }, [colaboradoresActivos, sucursalAsignadaPorColaborador, ventasPorSucursalQuincena, colaboradoresAsignadosPorSucursal, makePlanillaKey, quincenaRange, manualBonos, sucursales, totalVentasQuincena, totalColaboradoresBodega]);
 
   const planillaRowsFiltradas = useMemo(() => {
-    if (areaFilterPlanilla === 'all') {
-      return planillaRows;
-    }
+    const rowsByBranch = selectedBranch === 'all'
+      ? planillaRows
+      : selectedBranch === 'corporativo'
+        ? planillaRows.filter((row) => !row.sucursalAsignadaId)
+        : planillaRows.filter((row) => row.sucursalAsignadaId === selectedBranch);
 
-    return planillaRows.filter((row) => row.area === areaFilterPlanilla);
-  }, [planillaRows, areaFilterPlanilla]);
+    return areaFilterPlanilla === 'all'
+      ? rowsByBranch
+      : rowsByBranch.filter((row) => row.area === areaFilterPlanilla);
+  }, [planillaRows, areaFilterPlanilla, selectedBranch]);
 
   const persistManualBonos = useCallback((next: Record<string, number>) => {
     setManualBonos(next);
@@ -728,19 +773,36 @@ export default function Home() {
     persistSucursalAsignada(next);
   };
 
+  const handleEliminarColaborador = async (colaborador: Colaborador) => {
+    const confirmed = typeof window !== 'undefined'
+      ? window.confirm(`¿Estás seguro de eliminar al colaborador ${colaborador.nombre}? Esta acción no se puede deshacer.`)
+      : false;
+
+    if (!confirmed) return;
+
+    const { error } = await supabase.from('colaboradores').delete().eq('id', colaborador.id);
+    if (error) {
+      logSupabaseError('Error eliminando colaborador', error);
+      window.alert('No se pudo eliminar el colaborador.');
+      return;
+    }
+
+    setColaboradores((current) => current.filter((item) => String(item.id) !== String(colaborador.id)));
+  };
+
   const totalPlanilla = useMemo(
-    () => planillaRows.reduce((sum, row) => sum + row.salarioNeto, 0),
-    [planillaRows],
+    () => planillaRowsFiltradas.reduce((sum, row) => sum + row.salarioNeto, 0),
+    [planillaRowsFiltradas],
   );
 
   const totalIgssPlanilla = useMemo(
-    () => planillaRows.reduce((sum, row) => sum + row.igss, 0),
-    [planillaRows],
+    () => planillaRowsFiltradas.reduce((sum, row) => sum + row.igss, 0),
+    [planillaRowsFiltradas],
   );
 
   const totalBonoPlanilla = useMemo(
-    () => planillaRows.reduce((sum, row) => sum + row.bonoAplicado, 0),
-    [planillaRows],
+    () => planillaRowsFiltradas.reduce((sum, row) => sum + row.bonoAplicado, 0),
+    [planillaRowsFiltradas],
   );
 
   const gastosPorCategoria = useMemo(() => {
@@ -912,11 +974,15 @@ export default function Home() {
 
   const handleSucursalCreated = (nuevaSucursal: Sucursal) => {
     setSucursales((current) => {
-      const next = [...current, nuevaSucursal];
+      const exists = current.some((item) => String(item.id) === String(nuevaSucursal.id));
+      const next = exists
+        ? current.map((item) => String(item.id) === String(nuevaSucursal.id) ? { ...item, ...nuevaSucursal } : item)
+        : [...current, nuevaSucursal];
       return next.sort((a, b) => a.nombre.localeCompare(b.nombre, 'es', { sensitivity: 'base' }));
     });
 
     setModalSucursalAbierto(false);
+    setSucursalEnEdicion(null);
     if (typeof window !== 'undefined') {
       window.alert('Sucursal registrada con éxito');
     }
@@ -998,10 +1064,10 @@ export default function Home() {
   };
 
   const sectionTitleMap: Record<SectionKey, string> = {
-    ventas: 'Ventas y Recaudaciones',
+    ventas: 'Ventas y Arqueos',
     planilla: 'Planilla y Bonificaciones',
-    gastos: 'Gastos y Gastos Fijos',
-    consolidado: 'Consolidado Mensual de Gastos',
+    gastos: 'Gastos',
+    consolidado: 'Consolidado de Gastos',
   };
 
   const ventasSinDatos = sucursales.length === 0 && ventas.length === 0;
@@ -1011,7 +1077,7 @@ export default function Home() {
   }
 
   return (
-    <main className="min-h-screen bg-slate-950 text-slate-100">
+    <main className={`min-h-screen text-slate-100 ${themeMode === 'light' ? 'theme-surface-light' : 'bg-slate-950'}`}>
       <Sidebar
         activeSection={activeSection}
         isOpen={isSidebarOpen}
@@ -1042,56 +1108,95 @@ export default function Home() {
               </div>
             </div>
 
-            <div className="flex flex-wrap items-center gap-2">
+            <div className="grid w-full grid-cols-2 gap-1.5 sm:flex sm:w-auto sm:flex-wrap sm:justify-end">
               <button
                 type="button"
-                onClick={() => setModalSucursalAbierto(true)}
-                className="inline-flex items-center justify-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition-all hover:bg-indigo-500"
+                onClick={() => setThemeMode((current) => current === 'dark' ? 'light' : 'dark')}
+                className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-slate-700 bg-slate-900 text-slate-200 shadow-sm transition hover:border-orange-400 hover:text-orange-300"
+                aria-label={themeMode === 'dark' ? 'Activar modo claro' : 'Activar modo oscuro'}
+                title={themeMode === 'dark' ? 'Modo claro' : 'Modo oscuro'}
+              >
+                {themeMode === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setSucursalEnEdicion(null);
+                  setModalSucursalAbierto(true);
+                }}
+                className="inline-flex shrink-0 items-center justify-center gap-1.5 rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white shadow-sm transition-all hover:bg-indigo-500 sm:text-sm"
               >
                 <Plus className="h-4 w-4" />
-                + Nueva Farmacia / Sucursal
+                Nueva Farmacia
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setModalGestionFarmaciasAbierto(true)}
+                className="inline-flex shrink-0 items-center justify-center gap-1.5 rounded-lg border border-slate-700 bg-slate-900 px-3 py-1.5 text-xs font-medium text-slate-200 shadow-sm transition hover:border-orange-400 hover:text-orange-300 sm:text-sm"
+              >
+                Gestionar Farmacias
               </button>
 
               <button
                 type="button"
                 onClick={() => setModalColaboradorAbierto(true)}
-                className="bg-indigo-600 hover:bg-indigo-500 text-white font-medium px-4 py-2 rounded-lg flex items-center gap-2 shadow-sm transition-all"
+                className="inline-flex shrink-0 items-center justify-center gap-1.5 rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white shadow-sm transition-all hover:bg-indigo-500 sm:text-sm"
               >
                 <Plus className="h-4 w-4" />
-                + Nuevo Colaborador
+                Nuevo Colaborador
               </button>
 
               <button
                 type="button"
                 onClick={() => setModalVentaAbierto(true)}
-                className="inline-flex items-center justify-center gap-2 rounded-xl bg-orange-500 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-orange-400"
+                className="inline-flex shrink-0 items-center justify-center gap-1.5 rounded-lg bg-orange-500 px-3 py-1.5 text-xs font-medium text-white shadow-sm transition hover:bg-orange-400 sm:text-sm"
               >
                 <Plus className="h-4 w-4" />
-                + Registrar Venta / Corte
+                Registrar Venta
               </button>
 
               <button
                 type="button"
                 onClick={() => setModalGastoAbierto(true)}
-                className="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-500"
+                className="inline-flex shrink-0 items-center justify-center gap-1.5 rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-medium text-white shadow-sm transition hover:bg-blue-500 sm:text-sm"
               >
                 <Plus className="h-4 w-4" />
-                + Registrar Gasto
+                Registrar Gasto
               </button>
 
-              <select
-                value={selectedBranch}
-                onChange={(event) => setSelectedBranch(event.target.value)}
-                className="rounded-xl border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-200 outline-none transition focus:border-orange-400"
-              >
-                <option value="all">Todas las sucursales</option>
-                {sucursales.map((sucursal) => (
-                  <option key={String(sucursal.id)} value={String(sucursal.id)}>
-                    {sucursal.nombre}
-                  </option>
-                ))}
-                <option value="corporativo">Gastos corporativos</option>
-              </select>
+              <div className="flex w-full shrink-0 items-center gap-2 sm:mt-0 sm:w-auto">
+                <select
+                  value={selectedBranch}
+                  onChange={(event) => setSelectedBranch(event.target.value)}
+                  className="mt-2 w-full rounded-xl border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-200 outline-none transition focus:border-orange-400 sm:mt-0 sm:w-auto"
+                >
+                  <option value="all">Todas las sucursales</option>
+                  {sucursales.map((sucursal) => (
+                    <option key={String(sucursal.id)} value={String(sucursal.id)}>
+                      {sucursal.nombre}
+                    </option>
+                  ))}
+                  <option value="corporativo">Gastos corporativos</option>
+                </select>
+                {selectedBranch !== 'all' && selectedBranch !== 'corporativo' && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const selectedSucursal = sucursales.find((item) => String(item.id) === selectedBranch);
+                      if (selectedSucursal) {
+                        setSucursalEnEdicion(selectedSucursal);
+                        setModalSucursalAbierto(true);
+                      }
+                    }}
+                    className="mt-2 inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-slate-700 bg-slate-800 text-slate-200 transition hover:border-orange-400 hover:text-orange-300 sm:mt-0"
+                    aria-label="Editar farmacia seleccionada"
+                    title="Editar farmacia seleccionada"
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         </header>
@@ -1149,8 +1254,12 @@ export default function Home() {
 
           <ModalNuevaSucursal
             isOpen={modalSucursalAbierto}
-            onClose={() => setModalSucursalAbierto(false)}
+            onClose={() => {
+              setModalSucursalAbierto(false);
+              setSucursalEnEdicion(null);
+            }}
             onSuccess={handleSucursalCreated}
+            sucursal={sucursalEnEdicion}
           />
 
           <ModalNuevoColaborador
@@ -1179,7 +1288,7 @@ export default function Home() {
                   disabled={isConsolidandoPlanilla}
                   className="inline-flex items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-indigo-900/40 transition hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-70"
                 >
-                  {isConsolidandoPlanilla ? 'Consolidando...' : 'Cargar Reporte Quincenal / Mensual'}
+                  {isConsolidandoPlanilla ? 'Consolidando...' : 'Cargar Reporte de Planilla'}
                 </button>
               </div>
 
@@ -1272,6 +1381,7 @@ export default function Home() {
                       <th className="px-4 py-3">Bono Manual</th>
                       <th className="px-4 py-3 text-right">Bono Aplicado</th>
                       <th className="px-4 py-3 text-right">Salario Neto</th>
+                      <th className="px-4 py-3 text-right">Acciones</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -1313,7 +1423,14 @@ export default function Home() {
                         <td className="px-4 py-3 text-right font-mono text-emerald-400">{formatCurrency(row.ventasSucursal)}</td>
                         <td className="px-4 py-3 text-right font-mono text-emerald-400">{formatCurrency(row.salarioBase)}</td>
                         <td className="px-4 py-3 text-right font-mono text-emerald-400">{formatCurrency(row.igss)}</td>
-                        <td className="px-4 py-3 text-right font-mono text-emerald-400">{formatCurrency(row.bonoSugerido)}</td>
+                        <td className="px-4 py-3 text-right font-mono text-emerald-400">
+                          <div>{formatCurrency(row.bonoSugerido)}</div>
+                          {row.divisorColaboradores && (
+                            <div className="mt-1 text-[10px] font-sans font-medium text-slate-400">
+                              División entre {row.divisorColaboradores} colaboradores
+                            </div>
+                          )}
+                        </td>
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-2">
                             <input
@@ -1343,11 +1460,27 @@ export default function Home() {
                           )}
                         </td>
                         <td className="px-4 py-3 text-right font-mono text-emerald-400 font-bold">{formatCurrency(row.salarioNeto)}</td>
+                        <td className="px-4 py-3 text-right">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const colaborador = colaboradores.find((item) => String(item.id) === row.colaboradorId);
+                              if (colaborador) {
+                                void handleEliminarColaborador(colaborador);
+                              }
+                            }}
+                            aria-label={`Eliminar colaborador ${row.colaborador}`}
+                            title="Eliminar colaborador"
+                            className="rounded-lg p-2 text-rose-400 transition hover:bg-rose-500/10 hover:text-rose-300"
+                          >
+                            <Trash2 size={16} aria-hidden="true" />
+                          </button>
+                        </td>
                       </tr>
                     ))}
                     {planillaRowsFiltradas.length === 0 && (
                       <tr>
-                        <td colSpan={9} className="px-4 py-5 text-center text-sm text-slate-400">
+                        <td colSpan={10} className="px-4 py-5 text-center text-sm text-slate-400">
                           No hay colaboradores activos para la quincena seleccionada.
                         </td>
                       </tr>
@@ -1610,11 +1743,11 @@ export default function Home() {
                   <p className="mt-2 font-mono text-2xl font-bold text-emerald-400">{formatCurrency(ventasDashboard.totalGeneral)}</p>
                 </div>
                 <div className="rounded-2xl border border-slate-800 bg-slate-900 p-4">
-                  <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Presupuesto para Gastos (Ventas / 3)</p>
+                  <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Presupuesto para Gastos</p>
                   <p className="mt-2 font-mono text-2xl font-bold text-emerald-400">{formatCurrency(presupuestoGastos)}</p>
                 </div>
                 <div className="rounded-2xl border border-slate-800 bg-slate-900 p-4">
-                  <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Balance / Diferencia</p>
+                  <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Balance y Diferencia</p>
                   <p className="mt-2 font-mono text-2xl font-bold text-emerald-400">{formatCurrency(balanceGastos)}</p>
                 </div>
               </div>
@@ -1636,16 +1769,16 @@ export default function Home() {
                       { label: 'Pago Total de Luz', value: gastosPorCategoria.LUZ },
                       { label: 'Pago Total de Regencia', value: gastosPorCategoria.REGENCIA },
                       { label: 'Pago de Seguros', value: gastosPorCategoria.SEGUROS },
-                      { label: 'Reparación de Camionetas / Vehículos', value: gastosPorCategoria.REPARACION_VEHICULOS },
+                      { label: 'Reparación de Vehículos', value: gastosPorCategoria.REPARACION_VEHICULOS },
                       { label: 'Cuotas IGSS', value: gastosPorCategoria.CUOTAS_IGSS },
-                      { label: 'Reparaciones de Farmacias / Albañil', value: gastosPorCategoria.REPARACION_FARMACIAS + gastosPorCategoria.PAGOS_TERCEROS_ALBANIL },
-                      { label: 'Multas (SAT / Municipales)', value: gastosPorCategoria.MULTAS },
+                      { label: 'Reparaciones y Albañilería', value: gastosPorCategoria.REPARACION_FARMACIAS + gastosPorCategoria.PAGOS_TERCEROS_ALBANIL },
+                      { label: 'Multas Fiscales y Municipales', value: gastosPorCategoria.MULTAS },
                       { label: 'Pagos de Basura', value: gastosPorCategoria.BASURA },
-                      { label: 'Equipos de Cómputo / Cámaras', value: gastosPorCategoria.EQUIPO_COMPUTO_CAMARAS },
+                      { label: 'Equipos y Cámaras', value: gastosPorCategoria.EQUIPO_COMPUTO_CAMARAS },
                       { label: 'Gastos Varios Totales', value: gastosPorCategoria.VARIOS },
                       { label: 'TOTAL DE GASTOS DEL MES', value: totalGastosMes },
                       { label: 'PRESUPUESTO PARA GASTOS', value: presupuestoGastos },
-                      { label: 'BALANCE / DIFERENCIA', value: balanceGastos },
+                      { label: 'BALANCE Y DIFERENCIA', value: balanceGastos },
                     ].map((row) => (
                       <tr key={row.label} className="border-t border-slate-800">
                         <td className="px-4 py-3 text-slate-200">{row.label}</td>
@@ -1668,6 +1801,17 @@ export default function Home() {
         }}
         sucursales={sucursales}
         empleados={empleados}
+      />
+
+      <ModalGestionarFarmacias
+        isOpen={modalGestionFarmaciasAbierto}
+        onClose={() => setModalGestionFarmaciasAbierto(false)}
+        sucursales={sucursales}
+        onEdit={(sucursal) => {
+          setSucursalEnEdicion(sucursal);
+          setModalGestionFarmaciasAbierto(false);
+          setModalSucursalAbierto(true);
+        }}
       />
 
       <ModalNuevoGasto

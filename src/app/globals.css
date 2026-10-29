@@ -27,6 +27,10 @@ html {
   color-scheme: dark;
 }
 
+html.theme-light {
+  color-scheme: light;
+}
+
 body {
   background:
     radial-gradient(circle at top, rgba(37, 99, 235, 0.18), transparent 28%),
@@ -34,4 +38,177 @@ body {
     #020817;
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+}
+
+html.theme-light body {
+  background: #f8fafc;
+  color: #0f172a;
+}
+
+html.theme-light [class*="bg-slate-950"] {
+  background-color: #f8fafc !important;
+}
+
+html.theme-light [class*="bg-slate-900"] {
+  background-color: #ffffff !important;
+}
+
+html.theme-light [class*="bg-slate-800"] {
+  background-color: #f1f5f9 !important;
+}
+
+html.theme-light [class*="border-slate-"] {
+  border-color: #e2e8f0 !important;
+}
+
+html.theme-light [class*="text-white"] {
+  color: #0f172a !important;
+}
+
+html.theme-light [class*="text-slate-100"],
+html.theme-light [class*="text-slate-200"] {
+  color: #1e293b !important;
+}
+
+html.theme-light [class*="text-slate-300"],
+html.theme-light [class*="text-slate-400"] {
+  color: #475569 !important;
+}
+
+html.theme-light [class*="text-emerald-400"] {
+  color: #059669 !important;
+}
+
+html.theme-light [class*="text-orange-50"],
+html.theme-light [class*="text-orange-200"],
+html.theme-light [class*="text-orange-300"] {
+  color: #92400e !important;
+}
+
+html.theme-light [class*="text-blue-200"],
+html.theme-light [class*="text-blue-300"] {
+  color: #1d4ed8 !important;
+}
+
+html.theme-light [class*="bg-orange-500/10"] {
+  background-color: rgb(245 158 11 / 0.2) !important;
+}
+
+html.theme-light [class*="bg-blue-500/10"] {
+  background-color: #2563eb !important;
+}
+
+html.theme-light [class*="bg-blue-500/10"] {
+  color: #ffffff !important;
+}
+
+html.theme-light [class*="text-slate-500"] {
+  color: #64748b !important;
+}
+
+html.theme-light [class*="shadow-slate-950"] {
+  --tw-shadow-color: rgb(148 163 184 / 0.18) !important;
+}
+
+html.theme-light .sidebar-primary-action,
+html.theme-light .sidebar-primary-action [class*="lucide"] {
+  color: #ffffff !important;
+}
+
+html.theme-light .sidebar-nav-active {
+  background-color: #fff7ed !important;
+  border-color: #f97316 !important;
+}
+
+html.theme-light .sidebar-active-title {
+  color: #431407 !important;
+}
+
+html.theme-light .sidebar-active-description {
+  color: rgb(154 52 18 / 0.8) !important;
+}
+
+html.theme-light .sidebar-active-icon,
+html.theme-light .sidebar-active-icon [class*="lucide"] {
+  color: #ffffff !important;
+}
+
+html.theme-light .sidebar-nav-inactive {
+  background-color: #ffffff !important;
+  border-color: #e2e8f0 !important;
+}
+
+html.theme-light .sidebar-inactive-title {
+  color: #1e293b !important;
+}
+
+html.theme-light .sidebar-inactive-description {
+  color: #64748b !important;
+}
+
+html.theme-light .sidebar-inactive-icon,
+html.theme-light .sidebar-inactive-icon [class*="lucide"] {
+  color: #475569 !important;
+}
+
+html.theme-light .catalog-modal-kicker {
+  color: #b45309 !important;
+}
+
+html.theme-light .catalog-modal-title {
+  color: #0f172a !important;
+}
+
+html.theme-light .catalog-modal-close {
+  border-color: #cbd5e1 !important;
+  color: #64748b !important;
+}
+
+html.theme-light .catalog-modal-close:hover {
+  background-color: #f1f5f9 !important;
+  color: #1e293b !important;
+}
+
+html.theme-light .catalog-table-head {
+  border-color: #e2e8f0 !important;
+  background-color: rgb(248 250 252 / 0.8) !important;
+  color: #334155 !important;
+}
+
+html.theme-light .catalog-cell-name {
+  color: #0f172a !important;
+}
+
+html.theme-light .catalog-cell-secondary {
+  color: #334155 !important;
+}
+
+html.theme-light .catalog-fixed-count {
+  color: #0f172a !important;
+}
+
+html.theme-light .catalog-edit-button {
+  border-color: #c7d2fe !important;
+  background-color: #eef2ff !important;
+  color: #4338ca !important;
+}
+
+html.theme-light .catalog-edit-button:hover {
+  background-color: #e0e7ff !important;
+}
+
+html.theme-light .catalog-edit-icon {
+  color: #4f46e5 !important;
+}
+
+html.theme-light .catalog-status-active {
+  border-color: #a7f3d0 !important;
+  background-color: #ecfdf5 !important;
+  color: #065f46 !important;
+}
+
+html.theme-light .catalog-status-inactive {
+  border-color: #fecdd3 !important;
+  background-color: #fff1f2 !important;
+  color: #9f1239 !important;
 }

@@ -54,7 +54,7 @@ const buildRows = (sucursales: Sucursal[]): BatchRow[] =>
     montoTransferencia: '',
     montoTotal: '',
     notas: '',
-    selected: true,
+    selected: false,
   }));
 
 export default function ModalNuevaVenta({
@@ -128,8 +128,8 @@ export default function ModalNuevaVenta({
     setFechaFinCorte(value);
   };
 
-  const detectDuplicados = async (): Promise<Array<{ sucursalId: string; nombre: string }>> => {
-    if (selectedRows.length === 0) {
+  const detectDuplicados = async (rowsToCheck: BatchRow[]): Promise<Array<{ sucursalId: string; nombre: string }>> => {
+    if (rowsToCheck.length === 0) {
       return [];
     }
 
@@ -142,7 +142,7 @@ export default function ModalNuevaVenta({
 
     const resultados: Array<{ sucursalId: string; nombre: string }> = [];
 
-    for (const row of selectedRows) {
+    for (const row of rowsToCheck) {
       const sucursalId = String(row.sucursalId ?? '').trim();
       if (!sucursalId) {
         continue;
@@ -225,7 +225,7 @@ export default function ModalNuevaVenta({
     setError('');
 
     try {
-      const duplicados = await detectDuplicados();
+      const duplicados = await detectDuplicados(filasValidas);
 
       if (duplicados.length > 0) {
         const lista = duplicados.map((item) => item.nombre).join(', ');
@@ -395,7 +395,7 @@ export default function ModalNuevaVenta({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 px-3 py-4 backdrop-blur-sm">
-      <div className="relative w-[calc(100%-1rem)] max-w-5xl max-h-[88vh] overflow-y-auto rounded-2xl border border-slate-700 bg-slate-900 shadow-2xl shadow-slate-950/60">
+      <div className="relative mx-auto max-h-[90vh] w-full max-w-5xl overflow-y-auto rounded-2xl border border-slate-700 bg-slate-900 shadow-2xl shadow-slate-950/60">
         <div className="flex items-center justify-between border-b border-slate-700 px-5 py-4">
           <div>
             <p className="text-xs font-medium uppercase tracking-[0.2em] text-orange-300">Lote masivo</p>
@@ -434,6 +434,27 @@ export default function ModalNuevaVenta({
           </div>
 
           <div className="overflow-hidden rounded-2xl border border-slate-800 bg-slate-950/60">
+            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 px-3 py-3 sm:px-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">
+                Selección de farmacias
+              </p>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={() => setRows((currentRows) => currentRows.map((row) => ({ ...row, selected: true })))}
+                  className="rounded-lg border border-orange-500/40 bg-orange-500/10 px-3 py-1.5 text-xs font-semibold text-orange-200 transition hover:bg-orange-500/20"
+                >
+                  Seleccionar Todas
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setRows((currentRows) => currentRows.map((row) => ({ ...row, selected: false })))}
+                  className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-1.5 text-xs font-semibold text-slate-300 transition hover:border-slate-500 hover:text-white"
+                >
+                  Deseleccionar Todas
+                </button>
+              </div>
+            </div>
             <div className="max-h-[420px] overflow-auto">
               <table className="min-w-full table-fixed text-left text-sm">
                 <thead className="sticky top-0 bg-slate-950/90 text-slate-200">

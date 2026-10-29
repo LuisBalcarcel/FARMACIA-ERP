@@ -130,8 +130,8 @@ export default function ModalNuevoColaborador({ isOpen, onClose, onSuccess, sucu
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 px-4 backdrop-blur-sm">
-      <div className="relative w-full max-w-xl rounded-2xl border border-slate-700 bg-slate-900 shadow-2xl shadow-slate-950/60">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 px-3 py-4 backdrop-blur-sm">
+      <div className="relative mx-auto max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl border border-slate-700 bg-slate-900 shadow-2xl shadow-slate-950/60">
         <div className="flex items-center justify-between border-b border-slate-700 px-5 py-4">
           <div>
             <p className="text-xs font-medium uppercase tracking-[0.22em] text-indigo-300">Planilla</p>
@@ -149,17 +149,17 @@ export default function ModalNuevoColaborador({ isOpen, onClose, onSuccess, sucu
 
         <form onSubmit={handleSubmit} className="space-y-4 px-5 py-5">
           <label className="block space-y-2 text-sm text-slate-200">
-            <span>Área / Departamento</span>
+            <span>Área y Departamento</span>
             <select
               value={area}
               onChange={(event) => setArea(event.target.value as 'farmacia' | 'bodega' | 'admon' | 'otros')}
               className="w-full rounded-xl border border-slate-600 bg-slate-800 px-3 py-2.5 text-sm text-white outline-none transition focus:border-indigo-400"
               required
             >
-              <option value="farmacia">Farmacia / Mostrador</option>
-              <option value="bodega">Bodega / Logística</option>
-              <option value="admon">Administración / Oficina Central</option>
-              <option value="otros">Otros / Servicios Generales</option>
+              <option value="farmacia">Farmacia y Mostrador</option>
+              <option value="bodega">Bodega y Logística</option>
+              <option value="admon">Administración y Oficina Central</option>
+              <option value="otros">Otros y Servicios Generales</option>
             </select>
           </label>
 
@@ -194,7 +194,7 @@ export default function ModalNuevoColaborador({ isOpen, onClose, onSuccess, sucu
               className="w-full rounded-xl border border-slate-600 bg-slate-800 px-3 py-2.5 text-sm text-white outline-none transition focus:border-indigo-400"
               required={area === 'farmacia'}
             >
-              {area !== 'farmacia' && <option value="">Matriz / Corporativo Central</option>}
+              {area !== 'farmacia' && <option value="">Matriz y Corporativo Central</option>}
               {sucursales.map((sucursal) => (
                 <option key={String(sucursal.id)} value={String(sucursal.id)}>
                   {sucursal.nombre}

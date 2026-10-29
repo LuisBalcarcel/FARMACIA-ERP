@@ -10,19 +10,24 @@ type Sucursal = {
   direccion?: string | null;
   es_matriz?: boolean;
   activa?: boolean;
+  usar_plantilla_fija?: boolean;
+  cantidad_colaboradores?: number | null;
 };
 
 type ModalNuevaSucursalProps = {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: (sucursal: Sucursal) => void;
+  sucursal?: Sucursal | null;
 };
 
-export default function ModalNuevaSucursal({ isOpen, onClose, onSuccess }: ModalNuevaSucursalProps) {
+export default function ModalNuevaSucursal({ isOpen, onClose, onSuccess, sucursal = null }: ModalNuevaSucursalProps) {
   const [nombre, setNombre] = useState('');
   const [direccion, setDireccion] = useState('');
   const [esMatriz, setEsMatriz] = useState(false);
   const [activa, setActiva] = useState(true);
+  const [usarPlantillaFija, setUsarPlantillaFija] = useState(false);
+  const [cantidadColaboradores, setCantidadColaboradores] = useState('1');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -31,6 +36,8 @@ export default function ModalNuevaSucursal({ isOpen, onClose, onSuccess }: Modal
     setDireccion('');
     setEsMatriz(false);
     setActiva(true);
+    setUsarPlantillaFija(false);
+    setCantidadColaboradores('1');
     setError('');
   };
 
@@ -39,8 +46,19 @@ export default function ModalNuevaSucursal({ isOpen, onClose, onSuccess }: Modal
       return;
     }
 
+    if (sucursal) {
+      setNombre(sucursal.nombre);
+      setDireccion(sucursal.direccion ?? '');
+      setEsMatriz(sucursal.es_matriz === true);
+      setActiva(sucursal.activa !== false);
+      setUsarPlantillaFija(sucursal.usar_plantilla_fija === true);
+      setCantidadColaboradores(String(Math.max(1, Number(sucursal.cantidad_colaboradores ?? 1))));
+      setError('');
+      return;
+    }
+
     resetForm();
-  }, [isOpen]);
+  }, [isOpen, sucursal]);
 
   const handleClose = () => {
     resetForm();
@@ -56,33 +74,39 @@ export default function ModalNuevaSucursal({ isOpen, onClose, onSuccess }: Modal
       return;
     }
 
+    const cantidad = Number(cantidadColaboradores);
+    if (usarPlantillaFija && (!Number.isInteger(cantidad) || cantidad < 1)) {
+      setError('La cantidad de colaboradores debe ser un entero mayor o igual a 1.');
+      return;
+    }
+
     setLoading(true);
     setError('');
 
     try {
-      const { data, error: insertError } = await supabase
-        .from('sucursales')
-        .insert([
-          {
-            nombre: nombreLimpio.toUpperCase(),
-            direccion: direccion.trim() || null,
-            es_matriz: esMatriz,
-            activa,
-          },
-        ])
-        .select();
+      const payload = {
+        nombre: nombreLimpio.toUpperCase(),
+        direccion: direccion.trim() || null,
+        es_matriz: esMatriz,
+        activa,
+        usar_plantilla_fija: usarPlantillaFija,
+        cantidad_colaboradores: usarPlantillaFija ? cantidad : null,
+      };
 
-      if (insertError) {
-        throw insertError;
+      const response = sucursal
+        ? await supabase.from('sucursales').update(payload).eq('id', sucursal.id).select().single()
+        : await supabase.from('sucursales').insert([payload]).select().single();
+
+      if (response.error) {
+        throw response.error;
       }
 
-      const nuevaSucursal = data?.[0];
-      if (!nuevaSucursal) {
-        throw new Error('La sucursal fue registrada, pero la respuesta de Supabase no incluyó la fila creada.');
+      if (!response.data) {
+        throw new Error('Supabase no devolvió la sucursal guardada.');
       }
 
       resetForm();
-      onSuccess(nuevaSucursal as Sucursal);
+      onSuccess(response.data as Sucursal);
       onClose();
     } catch (insertError) {
       console.error('Error al crear la sucursal:', insertError);
@@ -104,12 +128,12 @@ export default function ModalNuevaSucursal({ isOpen, onClose, onSuccess }: Modal
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 px-4 backdrop-blur-sm">
-      <div className="relative w-full max-w-xl rounded-2xl border border-slate-700 bg-slate-900 shadow-2xl shadow-slate-950/60">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 px-3 py-4 backdrop-blur-sm">
+      <div className="relative mx-auto max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl border border-slate-700 bg-slate-900 shadow-2xl shadow-slate-950/60">
         <div className="flex items-center justify-between border-b border-slate-700 px-5 py-4">
           <div>
             <p className="text-xs font-medium uppercase tracking-[0.22em] text-orange-300">Administración</p>
-            <h2 className="mt-1 text-xl font-semibold text-white">Registrar nueva farmacia</h2>
+            <h2 className="mt-1 text-xl font-semibold text-white">{sucursal ? 'Editar farmacia' : 'Registrar nueva farmacia'}</h2>
           </div>
           <button
             type="button"
@@ -136,7 +160,7 @@ export default function ModalNuevaSucursal({ isOpen, onClose, onSuccess }: Modal
           </label>
 
           <label className="block space-y-2 text-sm text-slate-200">
-            <span>Dirección / Ubicación</span>
+            <span>Dirección y Ubicación</span>
             <textarea
               value={direccion}
               onChange={(event) => setDireccion(event.target.value)}
@@ -166,6 +190,31 @@ export default function ModalNuevaSucursal({ isOpen, onClose, onSuccess }: Modal
                 className="h-4 w-4 accent-orange-500"
               />
             </label>
+          </div>
+
+          <div className="space-y-3 rounded-xl border border-slate-700 bg-slate-800 px-3 py-3 text-sm text-slate-200">
+            <label className="flex items-start justify-between gap-3">
+              <span>¿Fijar cantidad de colaboradores para división de bonos?</span>
+              <input
+                type="checkbox"
+                checked={usarPlantillaFija}
+                onChange={(event) => setUsarPlantillaFija(event.target.checked)}
+                className="mt-0.5 h-4 w-4 shrink-0 accent-orange-500"
+              />
+            </label>
+            {usarPlantillaFija && (
+              <label className="block space-y-2">
+                <span>Cantidad de colaboradores</span>
+                <input
+                  type="number"
+                  min="1"
+                  step="1"
+                  value={cantidadColaboradores}
+                  onChange={(event) => setCantidadColaboradores(event.target.value)}
+                  className="w-full rounded-xl border border-slate-600 bg-slate-900 px-3 py-2.5 text-sm text-white outline-none transition focus:border-orange-400"
+                />
+              </label>
+            )}
           </div>
 
           {error ? (

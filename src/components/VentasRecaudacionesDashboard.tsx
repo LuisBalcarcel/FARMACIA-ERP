@@ -93,9 +93,9 @@ export default function VentasRecaudacionesDashboard({
         <div className="flex flex-col gap-3">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-blue-300">Ingreso y control de ventas</p>
-              <h2 className="mt-2 text-2xl font-semibold text-white">Ventas y Recaudaciones</h2>
-              <p className="mt-2 text-sm text-slate-300">Analisis por sucursal con trazabilidad de cortes y recaudacion consolidada.</p>
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-blue-300">Ingreso y control de ventas</p>
+              <h2 className="mt-2 text-2xl font-semibold text-white">Ventas y Arqueos</h2>
+              <p className="mt-2 text-sm text-slate-300">Análisis por sucursal con trazabilidad de cortes y recaudación consolidada.</p>
             </div>
 
             <div className="w-full sm:w-auto">
@@ -113,7 +113,7 @@ export default function VentasRecaudacionesDashboard({
               className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-orange-500 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-orange-400 sm:w-auto"
             >
               <Plus className="h-4 w-4" />
-              + Registrar Venta / Corte
+              Registrar Venta
             </button>
 
             <button
@@ -130,7 +130,7 @@ export default function VentasRecaudacionesDashboard({
             </button>
           </div>
 
-          <div className="flex items-center gap-2 overflow-x-auto py-1 no-scrollbar">
+          <div className="flex flex-nowrap items-center gap-1.5 overflow-x-auto py-1 no-scrollbar">
             {[
               { key: 'hoy', label: 'Hoy' },
               { key: 'semana', label: 'Esta Semana' },
@@ -144,8 +144,8 @@ export default function VentasRecaudacionesDashboard({
                 onClick={() => onApplyDatePreset(preset.key as 'hoy' | 'semana' | 'mes' | 'anio' | 'personalizado')}
                 className={`whitespace-nowrap rounded-xl border px-3 py-2 text-xs font-semibold uppercase tracking-[0.12em] transition ${
                   activeDatePreset === preset.key
-                    ? 'border-blue-500/40 bg-blue-500/10 text-blue-200'
-                    : 'border-slate-700 bg-slate-950 text-slate-300 hover:border-blue-400 hover:text-white'
+                    ? 'border-blue-600 bg-blue-600 text-white font-medium shadow-sm'
+                    : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-100'
                 }`}
               >
                 {preset.label}
@@ -153,7 +153,7 @@ export default function VentasRecaudacionesDashboard({
             ))}
           </div>
 
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 md:grid-cols-4">
             <label className="space-y-1 text-xs uppercase tracking-[0.12em] text-slate-300">
               <span>Desde</span>
               <input
@@ -228,7 +228,7 @@ export default function VentasRecaudacionesDashboard({
               }`}
             >
               <div className="flex items-center justify-between gap-2">
-                <span className="truncate text-sm font-semibold text-white">{sucursal.nombre}</span>
+                  <span className="truncate text-sm font-semibold text-white">{sucursal.nombre}</span>
                 <Store className="h-4 w-4 text-slate-400" />
               </div>
               <p className="mt-2 text-xs text-slate-400">{resumen?.cortes ?? 0} cortes</p>
@@ -248,7 +248,7 @@ export default function VentasRecaudacionesDashboard({
               <th className="px-4 py-3 font-medium text-right">Bono Bodega 40%</th>
               <th className="px-4 py-3 font-medium text-right">Bono Dependientes 60%</th>
               <th className="px-4 py-3 font-medium text-right">Efectivo</th>
-              <th className="px-4 py-3 font-medium text-right">Tarjetas/Transferencias</th>
+              <th className="px-4 py-3 font-medium text-right">Transferencias y POS</th>
               <th className="px-4 py-3 font-medium text-right">Cortes</th>
               <th className="px-4 py-3 font-medium text-right">Promedio por Corte</th>
               <th className="px-4 py-3 font-medium text-center">Acciones</th>
@@ -301,7 +301,7 @@ export default function VentasRecaudacionesDashboard({
                         className="inline-flex items-center gap-1 rounded-lg bg-orange-500 px-2.5 py-1.5 text-[11px] font-semibold text-white transition hover:bg-orange-400"
                       >
                         <Plus className="h-3.5 w-3.5" />
-                        Registrar Corte
+                        Registrar
                       </button>
                       <button
                         type="button"
@@ -347,7 +347,7 @@ export default function VentasRecaudacionesDashboard({
               <tr className="border-b border-slate-800">
                 <th className="px-3 py-2">Periodo</th>
                 <th className="px-3 py-2 text-right">Monto</th>
-                <th className="px-3 py-2">Notas de arqueo</th>
+                <th className="px-3 py-2">Notas de Arqueo</th>
               </tr>
             </thead>
             <tbody>

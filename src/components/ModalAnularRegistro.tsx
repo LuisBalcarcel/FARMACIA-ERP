@@ -57,7 +57,7 @@ export default function ModalAnularRegistro({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/75 px-3 py-4 backdrop-blur-sm">
-      <div className="w-[calc(100%-1rem)] max-w-lg max-h-[88vh] overflow-y-auto rounded-2xl border border-rose-700/50 bg-slate-900 shadow-2xl shadow-slate-950/60">
+      <div className="mx-auto max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl border border-rose-700/50 bg-slate-900 shadow-2xl shadow-slate-950/60">
         <div className="flex items-center justify-between border-b border-slate-700 px-5 py-4">
           <div>
             <p className="text-xs font-medium uppercase tracking-[0.2em] text-rose-300">Acción sensible</p>
