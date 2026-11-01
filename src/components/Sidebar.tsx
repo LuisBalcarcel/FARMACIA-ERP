@@ -44,7 +44,7 @@ export default function Sidebar({
       {isOpen && <button type="button" aria-label="Cerrar menú lateral" onClick={onClose} className="fixed inset-0 z-40 bg-black/70 backdrop-blur-sm lg:hidden" />}
 
       <aside
-        className={`fixed left-0 top-0 z-50 flex min-h-screen w-72 max-w-[82vw] flex-col justify-between border-r border-slate-800/80 bg-slate-950 p-5 shadow-2xl shadow-slate-950/60 transition-transform duration-300 ${
+        className={`liquid-glass fixed left-0 top-0 z-50 m-3 flex min-h-[calc(100vh-1.5rem)] w-72 max-w-[82vw] flex-col justify-between rounded-3xl p-4 shadow-2xl shadow-slate-950/60 transition-all duration-200 ease-out ${
           isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
         } lg:w-64 lg:translate-x-0`}
       >
@@ -64,7 +64,7 @@ export default function Sidebar({
               type="button"
               aria-label="Cerrar menú"
               onClick={onClose}
-              className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-slate-700 bg-slate-900 text-slate-300 transition hover:border-orange-400 hover:text-orange-300 lg:hidden"
+              className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-slate-700 bg-slate-900 text-slate-300 transition-all duration-200 ease-out hover:border-orange-400 hover:text-orange-300 active:scale-[0.98] lg:hidden"
             >
               <X className="h-4 w-4" />
             </button>
@@ -77,7 +77,7 @@ export default function Sidebar({
                 onQuickAction('venta');
                 onClose();
               }}
-                className="sidebar-primary-action inline-flex w-full items-center justify-center gap-2 rounded-xl bg-orange-600 px-3 py-2.5 text-sm font-bold text-white shadow-md shadow-orange-500/20 transition hover:bg-orange-700"
+                className="sidebar-primary-action inline-flex w-full items-center justify-center gap-2 rounded-xl bg-orange-600 px-3 py-2.5 text-sm font-bold text-white shadow-sm shadow-orange-500/20 transition-all duration-200 ease-out hover:bg-orange-500 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-orange-400 focus:ring-offset-2 focus:ring-offset-slate-950 active:scale-[0.98]"
             >
               <Plus className="h-4 w-4" />
               Registrar Venta
@@ -89,7 +89,7 @@ export default function Sidebar({
                 onQuickAction('gasto');
                 onClose();
               }}
-                className="sidebar-primary-action inline-flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-3 py-2.5 text-sm font-bold text-white shadow-md shadow-blue-500/20 transition hover:bg-blue-700"
+                className="sidebar-primary-action inline-flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-3 py-2.5 text-sm font-bold text-white shadow-sm shadow-blue-500/20 transition-all duration-200 ease-out hover:bg-blue-500 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2 focus:ring-offset-slate-950 active:scale-[0.98]"
             >
               <Plus className="h-4 w-4" />
               Registrar Gasto
@@ -106,10 +106,10 @@ export default function Sidebar({
                   key={item.key}
                   type="button"
                   onClick={() => handleSectionSelect(item.key)}
-                  className={`flex w-full items-start gap-3 rounded-xl border px-3 py-3 text-left transition ${
+                  className={`flex w-full items-start gap-3 rounded-xl border px-3 py-3 text-left transition-all duration-200 ease-out ${
                       isActive
-                      ? 'sidebar-nav-active border-2 border-orange-500 bg-orange-500/10 text-orange-50 shadow-inner shadow-orange-500/10'
-                      : 'sidebar-nav-inactive border border-slate-800 bg-slate-900/60 text-slate-300 hover:border-slate-700 hover:bg-slate-800/80 hover:text-white'
+                      ? 'sidebar-nav-active border-l-2 border-y-0 border-r-0 border-orange-500 bg-orange-500/10 text-orange-50 shadow-inner shadow-orange-500/10'
+                      : 'sidebar-nav-inactive border border-transparent bg-transparent text-slate-300 hover:border-transparent hover:bg-black/5 hover:text-white dark:hover:bg-white/5'
                   }`}
                 >
                   <span
@@ -117,7 +117,7 @@ export default function Sidebar({
                       isActive ? 'sidebar-active-icon bg-orange-500 text-white' : 'sidebar-inactive-icon bg-slate-800 text-slate-300'
                     }`}
                   >
-                    <Icon className="h-4 w-4" />
+                    <Icon className="h-4 w-4" strokeWidth={1.75} />
                   </span>
                   <span className="min-w-0">
                     <span className={`block text-sm ${isActive ? 'sidebar-active-title font-bold text-orange-50' : 'sidebar-inactive-title font-semibold text-slate-100'}`}>
@@ -136,6 +136,31 @@ export default function Sidebar({
           Motor contable ERP v2
         </div>
       </aside>
+
+      <nav className="liquid-glass fixed bottom-0 left-0 right-0 z-40 flex h-16 items-center justify-around rounded-t-3xl border-x-0 border-b-0 px-2 pb-[env(safe-area-inset-bottom)] lg:hidden" aria-label="Navegación principal">
+        {navigationItems.map((item) => {
+          const Icon = item.icon;
+          const isActive = activeSection === item.key;
+
+          return (
+            <button
+              key={`mobile-${item.key}`}
+              type="button"
+              onClick={() => handleSectionSelect(item.key)}
+              className={`flex min-h-12 min-w-[4.5rem] flex-col items-center justify-center gap-0.5 rounded-2xl px-3 py-1 text-[10px] font-medium transition-all duration-150 ease-out active:scale-[0.98] ${
+                isActive
+                  ? 'bg-orange-500/20 text-orange-600 dark:text-orange-300'
+                  : 'text-slate-500 hover:bg-black/5 dark:text-slate-400 dark:hover:bg-white/5'
+              }`}
+            >
+              <span className={`flex h-7 items-center rounded-full px-3 ${isActive ? 'bg-orange-500/20' : ''}`}>
+                <Icon className="h-4 w-4" strokeWidth={1.75} />
+              </span>
+              <span>{item.key === 'consolidado' ? 'Balance' : item.key === 'planilla' ? 'Planilla' : item.label}</span>
+            </button>
+          );
+        })}
+      </nav>
     </>
   );
 }

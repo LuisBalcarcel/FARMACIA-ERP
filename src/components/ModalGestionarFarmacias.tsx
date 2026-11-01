@@ -28,8 +28,8 @@ export default function ModalGestionarFarmacias({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/75 px-3 py-4 backdrop-blur-sm">
-      <div className="relative mx-auto max-h-[90vh] w-full max-w-4xl overflow-y-auto rounded-2xl border border-slate-700 bg-slate-900 shadow-2xl shadow-slate-950/60">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-3 py-4 backdrop-blur-md">
+      <div className="liquid-glass relative mx-auto max-h-[90vh] w-full max-w-4xl overflow-y-auto rounded-3xl p-6 shadow-2xl">
         <div className="sticky top-0 z-10 flex items-center justify-between gap-3 border-b border-slate-700 bg-slate-900 px-4 py-4 sm:px-5">
           <div className="flex items-center gap-3">
             <Settings className="h-5 w-5 text-orange-300" />
@@ -48,7 +48,7 @@ export default function ModalGestionarFarmacias({
           </button>
         </div>
 
-        <div className="overflow-x-auto p-4 sm:p-5">
+        <div className="overflow-x-auto p-0 sm:p-1">
           <table className="min-w-[760px] w-full text-left text-sm">
             <thead className="catalog-table-head border-b border-slate-700 bg-slate-950/80 text-slate-300">
               <tr>

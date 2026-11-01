@@ -1098,14 +1098,14 @@ export default function Home() {
         onQuickAction={handleQuickAction}
       />
 
-      <div className="w-full min-h-screen pl-0 lg:pl-64">
-        <header className="border-b border-slate-800 bg-slate-950/80 p-4 shadow-xl shadow-slate-950/20 backdrop-blur-sm sm:p-6">
+      <div className="w-full min-h-screen pb-20 pl-0 lg:pb-0 lg:pl-64">
+        <header className="border-b border-slate-800/70 bg-slate-950/70 p-4 shadow-xl shadow-slate-950/20 backdrop-blur-xl sm:p-6">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-3">
               <button
                 type="button"
                 onClick={() => setIsSidebarOpen((value) => !value)}
-                className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-700 bg-slate-900 text-slate-200 transition hover:border-orange-400 hover:text-orange-300 lg:hidden"
+                className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-700 bg-slate-900 text-slate-200 transition-all duration-200 ease-out hover:border-orange-400 hover:text-orange-300 active:scale-[0.98] lg:hidden"
                 aria-label="Abrir menú lateral"
               >
                 <Menu className="h-5 w-5" />
@@ -1121,7 +1121,7 @@ export default function Home() {
               <button
                 type="button"
                 onClick={() => setThemeMode((current) => current === 'dark' ? 'light' : 'dark')}
-                className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-slate-700 bg-slate-900 text-slate-200 shadow-sm transition hover:border-orange-400 hover:text-orange-300"
+                className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-slate-700 bg-slate-900 text-slate-200 shadow-sm transition-all duration-200 ease-out hover:border-orange-400 hover:text-orange-300 active:scale-[0.98]"
                 aria-label={themeMode === 'dark' ? 'Activar modo claro' : 'Activar modo oscuro'}
                 title={themeMode === 'dark' ? 'Modo claro' : 'Modo oscuro'}
               >
@@ -1133,7 +1133,7 @@ export default function Home() {
                   setSucursalEnEdicion(null);
                   setModalSucursalAbierto(true);
                 }}
-                className="inline-flex shrink-0 items-center justify-center gap-1.5 rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white shadow-sm transition-all hover:bg-indigo-500 sm:text-sm"
+                className="inline-flex shrink-0 items-center justify-center gap-1.5 rounded-xl bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white shadow-sm transition-all duration-200 ease-out hover:bg-indigo-500 hover:shadow-md active:scale-[0.98] sm:text-sm"
               >
                 <Plus className="h-4 w-4" />
                 Nueva Farmacia
@@ -1142,7 +1142,7 @@ export default function Home() {
               <button
                 type="button"
                 onClick={() => setModalGestionFarmaciasAbierto(true)}
-                className="inline-flex shrink-0 items-center justify-center gap-1.5 rounded-lg border border-slate-700 bg-slate-900 px-3 py-1.5 text-xs font-medium text-slate-200 shadow-sm transition hover:border-orange-400 hover:text-orange-300 sm:text-sm"
+                className="inline-flex shrink-0 items-center justify-center gap-1.5 rounded-xl border border-slate-700 bg-slate-900 px-3 py-1.5 text-xs font-medium text-slate-200 shadow-sm transition-all duration-200 ease-out hover:border-orange-400 hover:text-orange-300 active:scale-[0.98] sm:text-sm"
               >
                 Gestionar Farmacias
               </button>
@@ -1159,7 +1159,7 @@ export default function Home() {
               <button
                 type="button"
                 onClick={() => setModalVentaAbierto(true)}
-                className="inline-flex shrink-0 items-center justify-center gap-1.5 rounded-lg bg-orange-500 px-3 py-1.5 text-xs font-medium text-white shadow-sm transition hover:bg-orange-400 sm:text-sm"
+                className="inline-flex shrink-0 items-center justify-center gap-1.5 rounded-xl bg-orange-500 px-3 py-1.5 text-xs font-medium text-white shadow-sm transition-all duration-200 ease-out hover:bg-orange-400 hover:shadow-md active:scale-[0.98] sm:text-sm"
               >
                 <Plus className="h-4 w-4" />
                 Registrar Venta

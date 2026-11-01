@@ -182,17 +182,17 @@ export default function VentasRecaudacionesDashboard({
 
   return (
     <section className="space-y-5">
-      <div className="rounded-2xl border border-slate-800 bg-slate-900 p-4 shadow-xl shadow-slate-950/30">
+      <div className="liquid-glass rounded-3xl p-4 sm:p-5">
         <div className="flex flex-col gap-3">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <p className="text-[11px] font-semibold uppercase tracking-wider text-blue-300">Ingreso y control de ventas</p>
-              <h2 className="mt-2 text-2xl font-semibold text-white">Ventas</h2>
+              <h2 className="mt-2 text-2xl font-semibold tracking-tight text-white">Ventas</h2>
               <p className="mt-2 text-sm text-slate-300">Análisis por sucursal con trazabilidad de cortes y recaudación consolidada.</p>
             </div>
 
             <div className="w-full sm:w-auto">
-              <div className="w-full rounded-2xl border border-slate-800 bg-slate-950/70 px-5 py-4 sm:min-w-[280px]">
+              <div className="w-full rounded-2xl border border-slate-800/80 bg-slate-950/60 px-5 py-4 shadow-sm sm:min-w-[280px]">
                 <p className="text-xs uppercase tracking-[0.2em] text-slate-300">Total general consolidado</p>
                 <p className="mt-2 text-2xl font-mono font-bold text-emerald-400">{formatCurrency(totalGeneral)}</p>
               </div>
@@ -203,7 +203,7 @@ export default function VentasRecaudacionesDashboard({
             <button
               type="button"
               onClick={onAbrirRegistroVenta}
-              className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-orange-500 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-orange-400 sm:w-auto"
+              className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-orange-500 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-orange-500/20 transition-all duration-200 ease-out hover:bg-orange-400 hover:shadow-xl active:scale-[0.98] sm:w-auto"
             >
               <Plus className="h-4 w-4" />
               Registrar Venta
@@ -235,7 +235,7 @@ export default function VentasRecaudacionesDashboard({
                 key={preset.key}
                 type="button"
                 onClick={() => onApplyDatePreset(preset.key as 'hoy' | 'semana' | 'mes' | 'anio' | 'personalizado')}
-                className={`whitespace-nowrap rounded-xl border px-3 py-2 text-xs font-semibold uppercase tracking-[0.12em] transition ${
+                className={`h-9 whitespace-nowrap rounded-lg border px-3 text-xs font-semibold uppercase tracking-[0.12em] transition-all duration-150 ease-out active:scale-[0.98] ${
                   activeDatePreset === preset.key
                     ? 'border-blue-600 bg-blue-600 text-white font-medium shadow-sm'
                     : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-100'
@@ -253,7 +253,7 @@ export default function VentasRecaudacionesDashboard({
                 type="date"
                 value={fechaDesde}
                 onChange={(event) => onChangeFechaDesde(event.target.value)}
-                className="w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white outline-none transition focus:border-blue-400"
+                className="w-full rounded-xl border border-slate-700/80 bg-slate-950/70 px-3 py-2 text-sm text-white outline-none transition-all duration-200 ease-out focus:border-blue-400 focus:ring-2 focus:ring-blue-400/30"
               />
             </label>
 
@@ -308,7 +308,7 @@ export default function VentasRecaudacionesDashboard({
         <button
           type="button"
           onClick={() => onSelectFarmacia('')}
-          className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-bold transition ${
+          className={`liquid-btn inline-flex h-9 items-center gap-1.5 rounded-full border px-3 text-xs font-bold transition-all duration-150 ease-out active:scale-[0.98] ${
             selectedFarmaciaId === ''
               ? 'border-blue-500/50 bg-blue-500/10 text-white'
               : 'border-slate-700 bg-slate-900 text-slate-200 hover:border-blue-400'
@@ -328,7 +328,7 @@ export default function VentasRecaudacionesDashboard({
               key={String(sucursal.id)}
               type="button"
               onClick={() => onSelectFarmacia(String(sucursal.id))}
-              className={`rounded-lg border px-2.5 py-1.5 text-left transition ${
+              className={`liquid-btn inline-flex min-h-9 items-center rounded-full border px-3 py-1.5 text-left transition-all duration-150 ease-out active:scale-[0.98] ${
                 selected
                   ? 'border-amber-500 bg-amber-500/10 text-amber-400'
                   : 'border-slate-800 bg-slate-900 hover:border-blue-500/40 hover:bg-slate-800/60'
@@ -343,21 +343,22 @@ export default function VentasRecaudacionesDashboard({
         })}
       </div>
 
-      <div className="w-full overflow-x-auto rounded-xl border border-slate-800 [-webkit-overflow-scrolling:touch]">
+      <div className="liquid-glass w-full overflow-hidden rounded-3xl [-webkit-overflow-scrolling:touch]">
+        <div className="overflow-x-auto">
         <table className="min-w-[1320px] w-full text-left text-sm">
           <thead className="bg-slate-950/80 text-slate-200">
             <tr>
-              <th className="px-4 py-3 font-medium">Farmacia</th>
-              <th className="px-4 py-3 font-medium">Estado</th>
-              <th className="px-4 py-3 font-medium text-right">Total Recaudado</th>
-              <th className="px-4 py-3 font-medium text-right">Bono Total 1%</th>
-              <th className="px-4 py-3 font-medium text-right">Bono Bodega 40%</th>
-              <th className="px-4 py-3 font-medium text-right">Bono Dependientes 60%</th>
-              <th className="px-4 py-3 font-medium text-right">Efectivo</th>
-              <th className="px-4 py-3 font-medium text-right">Transferencias y POS</th>
-              <th className="px-4 py-3 font-medium text-right">Cortes</th>
-              <th className="px-4 py-3 font-medium text-right">Promedio por Corte</th>
-              <th className="px-4 py-3 font-medium text-center">Acciones</th>
+              <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-slate-400">Farmacia</th>
+              <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-slate-400">Estado</th>
+              <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-slate-400">Total Recaudado</th>
+              <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-slate-400">Bono Total 1%</th>
+              <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-slate-400">Bono Bodega 40%</th>
+              <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-slate-400">Bono Dependientes 60%</th>
+              <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-slate-400">Efectivo</th>
+              <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-slate-400">Transferencias y POS</th>
+              <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-slate-400">Cortes</th>
+              <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-slate-400">Promedio por Corte</th>
+              <th className="px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-wider text-slate-400">Acciones</th>
             </tr>
           </thead>
           <tbody>
@@ -370,7 +371,7 @@ export default function VentasRecaudacionesDashboard({
               };
 
               return (
-                <tr key={row.sucursalId} className="border-t border-slate-800 bg-slate-900/40">
+                <tr key={row.sucursalId} className="min-h-12 border-t border-slate-800/70 bg-slate-900/20 transition-colors hover:bg-slate-800/30">
                   <td className="px-4 py-3 font-semibold text-white">{row.nombre}</td>
                   <td className="px-4 py-3">
                     <span
@@ -383,20 +384,20 @@ export default function VentasRecaudacionesDashboard({
                       {row.activa ? 'Activa' : 'Inactiva'}
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-right font-mono font-bold text-emerald-400">{formatCurrency(row.totalRecaudado)}</td>
-                  <td className="px-4 py-3 text-right font-mono text-emerald-400">{formatCurrency(cascade.bonoTotalFarmacias)}</td>
-                  <td className="px-4 py-3 text-right font-mono text-emerald-400">{formatCurrency(cascade.bonoBodega)}</td>
-                  <td className="px-4 py-3 text-right font-mono text-emerald-400">{formatCurrency(cascade.bonoDependientes)}</td>
-                  <td className="px-4 py-3 text-right font-mono text-emerald-400">{formatCurrency(row.totalEfectivo)}</td>
-                  <td className="px-4 py-3 text-right font-mono text-emerald-400">{formatCurrency(row.totalDigital)}</td>
+                  <td className="px-4 py-3 text-right font-mono font-medium tabular-nums text-emerald-400">{formatCurrency(row.totalRecaudado)}</td>
+                  <td className="px-4 py-3 text-right font-mono font-medium tabular-nums text-emerald-400">{formatCurrency(cascade.bonoTotalFarmacias)}</td>
+                  <td className="px-4 py-3 text-right font-mono font-medium tabular-nums text-emerald-400">{formatCurrency(cascade.bonoBodega)}</td>
+                  <td className="px-4 py-3 text-right font-mono font-medium tabular-nums text-emerald-400">{formatCurrency(cascade.bonoDependientes)}</td>
+                  <td className="px-4 py-3 text-right font-mono font-medium tabular-nums text-emerald-400">{formatCurrency(row.totalEfectivo)}</td>
+                  <td className="px-4 py-3 text-right font-mono font-medium tabular-nums text-emerald-400">{formatCurrency(row.totalDigital)}</td>
                   <td className="px-4 py-3 text-right text-slate-200">{row.cortes}</td>
-                  <td className="px-4 py-3 text-right font-mono text-emerald-400">{formatCurrency(row.promedioPorCorte)}</td>
+                  <td className="px-4 py-3 text-right font-mono font-medium tabular-nums text-emerald-400">{formatCurrency(row.promedioPorCorte)}</td>
                   <td className="px-4 py-3">
                     <div className="whitespace-nowrap flex items-center gap-1.5 justify-center">
                       <button
                         type="button"
                         onClick={() => onVerHistorial(row.sucursalId)}
-                        className="inline-flex items-center gap-1 rounded-lg border border-slate-700 bg-slate-950 px-2.5 py-1.5 text-[11px] font-semibold text-slate-200 transition hover:border-blue-400 hover:text-white"
+                        className="inline-flex min-h-11 items-center gap-1 rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-[11px] font-semibold text-slate-200 transition-all duration-150 ease-out hover:border-blue-400 hover:text-white active:scale-[0.98]"
                       >
                         <Eye className="h-3.5 w-3.5" />
                         Ver Historial
@@ -404,7 +405,7 @@ export default function VentasRecaudacionesDashboard({
                       <button
                         type="button"
                         onClick={onAbrirRegistroVenta}
-                        className="inline-flex items-center gap-1 rounded-lg bg-orange-500 px-2.5 py-1.5 text-[11px] font-semibold text-white transition hover:bg-orange-400"
+                        className="inline-flex min-h-11 items-center gap-1 rounded-xl bg-orange-500 px-3 py-2 text-[11px] font-semibold text-white transition-all duration-150 ease-out hover:bg-orange-400 active:scale-[0.98]"
                       >
                         <Plus className="h-3.5 w-3.5" />
                         Registrar
@@ -412,7 +413,7 @@ export default function VentasRecaudacionesDashboard({
                       <button
                         type="button"
                         onClick={onAbrirRegistroVenta}
-                        className="inline-flex items-center gap-1 rounded-lg border border-slate-700 bg-slate-950 px-2.5 py-1.5 text-[11px] font-semibold text-slate-200 transition hover:border-blue-400 hover:text-white"
+                        className="inline-flex min-h-11 items-center gap-1 rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-[11px] font-semibold text-slate-200 transition-all duration-150 ease-out hover:border-blue-400 hover:text-white active:scale-[0.98]"
                       >
                         <Edit3 className="h-3.5 w-3.5" />
                         Editar
@@ -431,28 +432,29 @@ export default function VentasRecaudacionesDashboard({
             )}
           </tbody>
         </table>
+        </div>
       </div>
 
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-        <div className="min-w-0 rounded-2xl border border-slate-800 bg-slate-900 p-3 sm:p-4">
+        <div className="liquid-glass min-w-0 rounded-3xl p-3 sm:p-4">
           <p className="text-xs uppercase tracking-[0.14em] text-slate-400">Total Recaudado</p>
           <p className="mt-2 truncate font-mono text-lg font-bold text-emerald-400 sm:text-2xl">{formatCurrency(totalGeneral)}</p>
         </div>
-        <div className="min-w-0 rounded-2xl border border-slate-800 bg-slate-900 p-3 sm:p-4">
+        <div className="liquid-glass min-w-0 rounded-3xl p-3 sm:p-4">
           <p className="text-xs uppercase tracking-[0.14em] text-slate-400">Bono Total (1%)</p>
           <p className="mt-2 truncate font-mono text-lg font-bold text-emerald-400 sm:text-2xl">{formatCurrency(cascadeGlobal.bonoTotalFarmacias)}</p>
         </div>
-        <div className="min-w-0 rounded-2xl border border-slate-800 bg-slate-900 p-3 sm:p-4">
+        <div className="liquid-glass min-w-0 rounded-3xl p-3 sm:p-4">
           <p className="text-xs uppercase tracking-[0.14em] text-slate-400">Bono Bodega (40%)</p>
           <p className="mt-2 truncate font-mono text-lg font-bold text-emerald-400 sm:text-2xl">{formatCurrency(cascadeGlobal.bonoBodega)}</p>
         </div>
-        <div className="min-w-0 rounded-2xl border border-slate-800 bg-slate-900 p-3 sm:p-4">
+        <div className="liquid-glass min-w-0 rounded-3xl p-3 sm:p-4">
           <p className="text-xs uppercase tracking-[0.14em] text-slate-400">Bono Dependientes (60%)</p>
           <p className="mt-2 truncate font-mono text-lg font-bold text-emerald-400 sm:text-2xl">{formatCurrency(cascadeGlobal.bonoDependientes)}</p>
         </div>
       </div>
 
-      <div className="rounded-2xl border border-slate-800 bg-slate-900/70 p-4">
+      <div className="liquid-glass rounded-3xl p-4 sm:p-5">
         <div className="mb-3 flex items-center justify-between">
           <h3 className="text-lg font-semibold text-white">Historial de {sucursales.find((item) => String(item.id) === selectedFarmaciaId)?.nombre ?? 'farmacia'}</h3>
           <span className="text-xs uppercase tracking-[0.14em] text-slate-400">Resumen por período</span>
@@ -462,27 +464,27 @@ export default function VentasRecaudacionesDashboard({
           <table className="min-w-[900px] w-full text-left text-sm">
             <thead className="text-slate-300">
               <tr className="border-b border-slate-800">
-                <th className="whitespace-nowrap px-3 py-2">Período / Rango</th>
-                <th className="whitespace-nowrap px-3 py-2 text-right">Cortes</th>
-                <th className="whitespace-nowrap px-3 py-2 text-right">Monto Total</th>
-                <th className="whitespace-nowrap px-3 py-2">Detalle / Desglose</th>
+                <th className="whitespace-nowrap px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-slate-400">Período / Rango</th>
+                <th className="whitespace-nowrap px-3 py-2 text-right text-[11px] font-semibold uppercase tracking-wider text-slate-400">Cortes</th>
+                <th className="whitespace-nowrap px-3 py-2 text-right text-[11px] font-semibold uppercase tracking-wider text-slate-400">Monto Total</th>
+                <th className="whitespace-nowrap px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-slate-400">Detalle / Desglose</th>
               </tr>
             </thead>
             <tbody>
               {historiaPeriodos.map((periodo) => (
-                <tr key={periodo.key} className="border-b border-slate-800/80 align-top">
+                <tr key={periodo.key} className="min-h-12 border-b border-slate-800/70 align-top transition-colors hover:bg-slate-800/30">
                   <td className={`px-3 py-3 ${periodo.cortes.length > 0 ? 'text-slate-200' : 'text-slate-500'}`}>
                     <p className={`font-semibold capitalize ${periodo.cortes.length > 0 ? 'text-slate-100' : 'text-slate-500'}`}>{periodo.label}</p>
                     <p className="mt-1 text-xs">
                       {formatDate(periodo.inicio)} - {formatDate(periodo.fin)}
                     </p>
                   </td>
-                  <td className={`px-3 py-3 text-right font-medium ${periodo.cortes.length > 0 ? 'text-slate-200' : 'text-slate-500'}`}>{periodo.cortes.length}</td>
-                  <td className={`px-3 py-3 text-right font-mono font-semibold ${periodo.cortes.length > 0 ? 'text-emerald-400' : 'text-slate-500'}`}>{formatCurrency(periodo.total)}</td>
+                  <td className={`px-3 py-3 text-right font-medium tabular-nums ${periodo.cortes.length > 0 ? 'text-slate-200' : 'text-slate-500'}`}>{periodo.cortes.length}</td>
+                  <td className={`px-3 py-3 text-right font-mono font-medium tabular-nums ${periodo.cortes.length > 0 ? 'text-emerald-400' : 'text-slate-500'}`}>{formatCurrency(periodo.total)}</td>
                   <td className="px-3 py-3">
                     {periodo.cortes.length > 0 ? (
                       <details>
-                        <summary className="flex cursor-pointer list-none items-center gap-1 text-xs font-semibold text-blue-300 hover:text-blue-200">
+                        <summary className="flex min-h-11 cursor-pointer list-none items-center gap-1 rounded-xl px-2 text-xs font-semibold text-blue-300 transition-all duration-150 ease-out hover:bg-white/5 hover:text-blue-200 active:scale-[0.98]">
                           <ChevronDown className="h-4 w-4" />
                           Ver días
                         </summary>
