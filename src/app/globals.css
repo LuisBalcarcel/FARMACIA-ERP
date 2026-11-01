@@ -120,8 +120,28 @@ html.dark .liquid-input {
   color: #f8fafc;
 }
 
+html.theme-light .mobile-bottom-nav {
+  background-color: rgb(255 255 255 / 0.95);
+  border-top-color: rgb(226 232 240 / 0.9);
+  box-shadow:
+    0 -4px 25px rgb(0 0 0 / 0.06),
+    inset 0 1px 1px rgb(255 255 255 / 0.95);
+}
+
+html.theme-light .mobile-bottom-nav-active {
+  background-color: rgb(249 115 22 / 0.15);
+  border-color: rgb(249 115 22 / 0.3);
+  color: #ea580c;
+}
+
+html.theme-light .mobile-bottom-nav-inactive {
+  color: #475569;
+}
+
 html:not(.theme-light) .mobile-bottom-nav {
-  background-color: rgb(18 22 34 / 0.75);
+  background-color: rgb(16 20 30 / 0.9);
+  border-top-color: rgb(255 255 255 / 0.1);
+  box-shadow: 0 -4px 25px rgb(0 0 0 / 0.4);
 }
 
 html.theme-light body {
