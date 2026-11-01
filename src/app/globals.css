@@ -120,6 +120,10 @@ html.dark .liquid-input {
   color: #f8fafc;
 }
 
+html:not(.theme-light) .mobile-bottom-nav {
+  background-color: rgb(20 18 24 / 0.98);
+}
+
 html.theme-light body {
   background: #f8fafc;
   color: #0f172a;

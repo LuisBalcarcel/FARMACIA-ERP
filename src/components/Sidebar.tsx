@@ -41,12 +41,12 @@ export default function Sidebar({
 
   return (
     <>
-      {isOpen && <button type="button" aria-label="Cerrar menú lateral" onClick={onClose} className="fixed inset-0 z-40 bg-black/70 backdrop-blur-sm lg:hidden" />}
+      {isOpen && <button type="button" aria-label="Cerrar menú lateral" onClick={onClose} className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm md:hidden" />}
 
       <aside
-        className={`liquid-glass fixed left-0 top-0 z-50 m-3 flex min-h-[calc(100vh-1.5rem)] w-72 max-w-[82vw] flex-col justify-between rounded-3xl p-4 shadow-2xl shadow-slate-950/60 transition-all duration-200 ease-out ${
-          isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
-        } lg:w-64 lg:translate-x-0`}
+        className={`fixed inset-y-0 left-0 z-50 flex h-dvh w-[80%] max-w-xs flex-col justify-between overflow-y-auto border-r border-slate-200 bg-white p-4 pb-[calc(1.5rem+env(safe-area-inset-bottom))] shadow-2xl shadow-slate-950/30 transition-all duration-200 ease-out dark:border-white/10 dark:bg-[#141218] md:inset-y-auto md:left-0 md:top-0 md:m-3 md:flex md:min-h-[calc(100vh-1.5rem)] md:h-auto md:w-64 md:max-w-[82vw] md:overflow-visible md:rounded-3xl md:border-r-0 md:p-4 md:pb-4 md:shadow-2xl md:shadow-slate-950/60 md:backdrop-blur-xl md:liquid-glass ${
+          isOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
+        }`}
       >
         <div className="space-y-6">
           <div className="flex items-center justify-between gap-3 border-b border-slate-800 pb-4">
@@ -64,7 +64,7 @@ export default function Sidebar({
               type="button"
               aria-label="Cerrar menú"
               onClick={onClose}
-              className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-slate-700 bg-slate-900 text-slate-300 transition-all duration-200 ease-out hover:border-orange-400 hover:text-orange-300 active:scale-[0.98] lg:hidden"
+              className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-slate-700 bg-slate-900 text-slate-300 transition-all duration-200 ease-out hover:border-orange-400 hover:text-orange-300 active:scale-[0.98] md:hidden"
             >
               <X className="h-4 w-4" />
             </button>
@@ -137,7 +137,8 @@ export default function Sidebar({
         </div>
       </aside>
 
-      <nav className="liquid-glass fixed bottom-0 left-0 right-0 z-40 flex h-16 items-center justify-around rounded-t-3xl border-x-0 border-b-0 px-2 pb-[env(safe-area-inset-bottom)] lg:hidden" aria-label="Navegación principal">
+      <nav className={`mobile-bottom-nav fixed bottom-0 left-0 right-0 z-40 min-h-16 rounded-t-3xl border-x-0 border-b border-t border-slate-200 bg-white/[0.98] px-2 pb-[env(safe-area-inset-bottom,0.5rem)] pt-2 shadow-[0_-4px_25px_rgba(0,0,0,0.08)] backdrop-blur-2xl dark:border-white/10 dark:bg-[#141218]/[0.98] dark:shadow-[0_-4px_25px_rgba(0,0,0,0.5)] md:hidden ${isOpen ? 'pointer-events-none hidden' : 'flex'}`} aria-label="Navegación principal">
+        <div className="flex h-14 items-center justify-around">
         {navigationItems.map((item) => {
           const Icon = item.icon;
           const isActive = activeSection === item.key;
@@ -160,6 +161,7 @@ export default function Sidebar({
             </button>
           );
         })}
+        </div>
       </nav>
     </>
   );

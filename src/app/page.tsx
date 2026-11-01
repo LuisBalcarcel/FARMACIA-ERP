@@ -1086,7 +1086,7 @@ export default function Home() {
   }
 
   return (
-    <main className={`min-h-screen text-slate-100 ${themeMode === 'light' ? 'theme-surface-light' : 'bg-slate-950'}`}>
+    <main className={`min-h-screen pb-32 text-slate-100 md:pb-6 ${themeMode === 'light' ? 'theme-surface-light' : 'bg-slate-950'}`}>
       <Sidebar
         activeSection={activeSection}
         isOpen={isSidebarOpen}
@@ -1098,14 +1098,14 @@ export default function Home() {
         onQuickAction={handleQuickAction}
       />
 
-      <div className="w-full min-h-screen pb-20 pl-0 lg:pb-0 lg:pl-64">
+      <div className="w-full min-h-screen pb-20 pl-0 md:pb-0 md:pl-64">
         <header className="border-b border-slate-800/70 bg-slate-950/70 p-4 shadow-xl shadow-slate-950/20 backdrop-blur-xl sm:p-6">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-3">
               <button
                 type="button"
                 onClick={() => setIsSidebarOpen((value) => !value)}
-                className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-700 bg-slate-900 text-slate-200 transition-all duration-200 ease-out hover:border-orange-400 hover:text-orange-300 active:scale-[0.98] lg:hidden"
+                className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-700 bg-slate-900 text-slate-200 transition-all duration-200 ease-out hover:border-orange-400 hover:text-orange-300 active:scale-[0.98] md:hidden"
                 aria-label="Abrir menú lateral"
               >
                 <Menu className="h-5 w-5" />
