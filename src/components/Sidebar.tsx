@@ -106,24 +106,24 @@ export default function Sidebar({
                   key={item.key}
                   type="button"
                   onClick={() => handleSectionSelect(item.key)}
-                  className={`flex w-full items-start gap-3 rounded-xl border px-3 py-3 text-left transition-all duration-200 ease-out ${
+                  className={`group flex w-full items-start gap-3 rounded-xl border px-3 py-3 text-left transition-all duration-200 ease-out ${
                       isActive
                       ? 'sidebar-nav-active border-l-2 border-y-0 border-r-0 border-orange-500 bg-orange-100 text-orange-900 shadow-inner shadow-orange-500/10 dark:bg-[#4a2818] dark:text-orange-200'
-                      : 'sidebar-nav-inactive border border-slate-200 bg-slate-100 text-slate-700 hover:border-slate-300 hover:bg-slate-200 hover:text-slate-900 dark:border-white/10 dark:bg-[#1a2230] dark:text-slate-300 dark:hover:bg-[#253044] dark:hover:text-slate-100'
+                      : 'sidebar-nav-inactive rounded-2xl border border-slate-200/70 bg-white/80 p-3 text-slate-700 shadow-xs transition-all hover:bg-white hover:shadow-sm dark:border-white/5 dark:bg-white/[0.04] dark:hover:bg-white/[0.08]'
                   }`}
                 >
                   <span
                     className={`mt-0.5 inline-flex h-8 w-8 items-center justify-center rounded-lg ${
-                      isActive ? 'sidebar-active-icon bg-orange-500 text-white' : 'sidebar-inactive-icon bg-slate-200 text-slate-700 dark:bg-[#273244] dark:text-slate-300'
+                      isActive ? 'sidebar-active-icon bg-orange-500 text-white' : 'sidebar-inactive-icon rounded-xl border border-slate-200/80 bg-slate-100 p-2 text-slate-600 transition-colors group-hover:border-orange-200 group-hover:bg-orange-50 group-hover:text-orange-600 dark:border-white/10 dark:bg-white/10 dark:text-slate-300 dark:group-hover:bg-orange-500/20 dark:group-hover:text-orange-300'
                     }`}
                   >
-                    <Icon className="h-4 w-4" strokeWidth={1.75} />
+                    <Icon className={isActive ? 'h-4 w-4' : 'h-5 w-5'} strokeWidth={1.75} />
                   </span>
                   <span className="min-w-0">
-                    <span className={`block text-sm ${isActive ? 'sidebar-active-title font-bold text-orange-50' : 'sidebar-inactive-title font-semibold text-slate-100'}`}>
+                    <span className={`block text-sm ${isActive ? 'sidebar-active-title font-bold text-orange-50' : 'sidebar-inactive-title text-slate-800 font-semibold transition-colors group-hover:text-orange-600 dark:text-slate-100 dark:group-hover:text-orange-300'}`}>
                       {item.label}
                     </span>
-                    <span className={`mt-1 block text-xs ${isActive ? 'sidebar-active-description font-medium text-slate-400' : 'sidebar-inactive-description text-slate-400'}`}>
+                    <span className={`mt-1 block text-xs ${isActive ? 'sidebar-active-description font-medium text-slate-400' : 'sidebar-inactive-description text-slate-500 dark:text-slate-400'}`}>
                       {item.description}
                     </span>
                   </span>
@@ -137,7 +137,7 @@ export default function Sidebar({
         </div>
       </aside>
 
-      <nav className={`liquid-glass fixed bottom-0 left-0 right-0 z-40 flex h-16 items-center justify-around rounded-t-3xl border-x-0 border-b-0 border-t border-slate-300/80 bg-white/98 px-2 pb-[env(safe-area-inset-bottom)] shadow-[0_-4px_20px_rgba(0,0,0,0.08)] dark:border-white/10 dark:bg-[#121622]/98 lg:hidden ${isOpen ? 'pointer-events-none hidden' : 'flex'}`} aria-label="Navegación principal">
+      <nav className={`fixed bottom-0 left-0 right-0 z-40 flex h-16 items-center justify-around rounded-t-3xl border-x-0 border-b-0 border-t border-white/70 bg-white/90 px-2 pb-[env(safe-area-inset-bottom)] shadow-[0_-4px_25px_rgba(0,0,0,0.06),inset_0_1px_1px_rgba(255,255,255,0.95)] backdrop-blur-2xl dark:border-white/10 dark:bg-[#121622]/90 dark:shadow-[0_-4px_25px_rgba(0,0,0,0.4),inset_0_1px_1px_rgba(255,255,255,0.1)] lg:hidden ${isOpen ? 'pointer-events-none hidden' : 'flex'}`} aria-label="Navegación principal">
         {navigationItems.map((item) => {
           const Icon = item.icon;
           const isActive = activeSection === item.key;
@@ -148,11 +148,11 @@ export default function Sidebar({
               type="button"
               onClick={() => handleSectionSelect(item.key)}
               className={`flex min-h-12 min-w-[4.5rem] flex-col items-center justify-center gap-0.5 rounded-2xl px-3 py-1 text-[10px] font-medium transition-all duration-150 ease-out active:scale-[0.98] ${
-                isActive ? 'bg-orange-500/20 font-semibold text-orange-600 dark:bg-orange-500/25 dark:text-orange-400' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-white/5 dark:hover:text-slate-100'
+                isActive ? 'border border-orange-500/30 bg-orange-500/15 font-semibold text-orange-600 shadow-[inset_0_1px_1px_rgba(255,255,255,0.8)] dark:border-orange-500/35 dark:bg-orange-500/25 dark:text-orange-300' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-white/5 dark:hover:text-slate-100'
               }`}
             >
               <span
-                className={`flex h-7 items-center rounded-full px-3 ${isActive ? 'bg-orange-500/20' : ''}`}
+                className="flex h-7 items-center rounded-full px-3"
               >
                 <Icon className="h-4 w-4" strokeWidth={1.75} />
               </span>

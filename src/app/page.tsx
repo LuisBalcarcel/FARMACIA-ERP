@@ -1086,7 +1086,7 @@ export default function Home() {
   }
 
   return (
-    <main className={`min-h-screen pb-32 text-slate-100 md:pb-6 ${themeMode === 'light' ? 'theme-surface-light' : 'bg-slate-950'}`}>
+    <main className={`min-h-screen pb-28 text-slate-100 md:pb-6 ${themeMode === 'light' ? 'theme-surface-light' : 'bg-slate-950'}`}>
       <Sidebar
         activeSection={activeSection}
         isOpen={isSidebarOpen}
