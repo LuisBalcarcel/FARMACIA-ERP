@@ -137,7 +137,7 @@ export default function Sidebar({
         </div>
       </aside>
 
-      <nav className={`fixed bottom-0 left-0 right-0 z-40 flex h-16 items-center justify-around rounded-t-3xl border-x-0 border-b-0 border-t border-white/70 bg-white/90 px-2 pb-[env(safe-area-inset-bottom)] shadow-[0_-4px_25px_rgba(0,0,0,0.06),inset_0_1px_1px_rgba(255,255,255,0.95)] backdrop-blur-2xl dark:border-white/10 dark:bg-[#121622]/90 dark:shadow-[0_-4px_25px_rgba(0,0,0,0.4),inset_0_1px_1px_rgba(255,255,255,0.1)] lg:hidden ${isOpen ? 'pointer-events-none hidden' : 'flex'}`} aria-label="Navegación principal">
+      <nav className={`fixed bottom-0 left-0 right-0 z-40 grid h-16 grid-cols-4 items-center justify-items-center rounded-t-3xl border-x-0 border-b-0 border-t border-slate-200/90 bg-white/95 px-2 pb-[env(safe-area-inset-bottom,0.5rem)] pt-1 shadow-[0_-4px_25px_rgba(0,0,0,0.06),inset_0_1px_1px_rgba(255,255,255,0.95)] backdrop-blur-2xl dark:border-white/10 dark:bg-[#10141e]/90 dark:shadow-[0_-4px_25px_rgba(0,0,0,0.4)] lg:hidden ${isOpen ? 'pointer-events-none hidden' : 'grid'}`} aria-label="Navegación principal">
         {navigationItems.map((item) => {
           const Icon = item.icon;
           const isActive = activeSection === item.key;
@@ -147,8 +147,8 @@ export default function Sidebar({
               key={`mobile-${item.key}`}
               type="button"
               onClick={() => handleSectionSelect(item.key)}
-              className={`flex min-h-12 min-w-[4.5rem] flex-col items-center justify-center gap-0.5 rounded-2xl px-3 py-1 text-[10px] font-medium transition-all duration-150 ease-out active:scale-[0.98] ${
-                isActive ? 'border border-orange-500/30 bg-orange-500/15 font-semibold text-orange-600 shadow-[inset_0_1px_1px_rgba(255,255,255,0.8)] dark:border-orange-500/35 dark:bg-orange-500/25 dark:text-orange-300' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-white/5 dark:hover:text-slate-100'
+              className={`flex h-full w-full flex-col items-center justify-center gap-0.5 rounded-2xl px-3 py-1 text-[10px] transition-all duration-150 ease-out active:scale-[0.98] ${
+                isActive ? 'border border-orange-500/30 bg-orange-500/15 font-semibold text-orange-600 shadow-[inset_0_1px_1px_rgba(255,255,255,0.8)] dark:border-orange-500/35 dark:bg-orange-500/25 dark:text-orange-300' : 'font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-white/5 dark:hover:text-slate-200'
               }`}
             >
               <span
@@ -157,7 +157,7 @@ export default function Sidebar({
                 <Icon className="h-4 w-4" strokeWidth={1.75} />
               </span>
               <span
-                className="mt-0.5 text-center"
+                className={`mt-0.5 text-center ${isActive ? 'font-bold text-orange-600 dark:text-orange-300' : ''}`}
               >
                 {item.key === 'consolidado' ? 'Balance' : item.key === 'planilla' ? 'Planilla' : item.label}
               </span>
