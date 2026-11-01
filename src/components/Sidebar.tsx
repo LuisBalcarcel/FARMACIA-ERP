@@ -137,8 +137,7 @@ export default function Sidebar({
         </div>
       </aside>
 
-      <nav className={`mobile-bottom-nav fixed bottom-0 left-0 right-0 z-40 min-h-16 rounded-t-3xl border-x-0 border-b border-t border-slate-200 bg-white/[0.98] px-2 pb-[env(safe-area-inset-bottom,0.5rem)] pt-2 shadow-[0_-4px_25px_rgba(0,0,0,0.08)] backdrop-blur-2xl dark:border-white/10 dark:bg-[#141218]/[0.98] dark:shadow-[0_-4px_25px_rgba(0,0,0,0.5)] md:hidden ${isOpen ? 'pointer-events-none hidden' : 'flex'}`} aria-label="Navegación principal">
-        <div className="flex h-14 items-center justify-around">
+      <nav className={`mobile-bottom-nav fixed bottom-0 left-0 right-0 z-40 grid h-16 grid-cols-4 items-center justify-items-center border-x-0 border-b border-t border-slate-200/80 bg-white/80 px-2 pb-[env(safe-area-inset-bottom,0.5rem)] pt-1 shadow-[0_-4px_20px_rgba(0,0,0,0.05),inset_0_1px_1px_0_rgba(255,255,255,0.9)] backdrop-blur-2xl dark:border-white/10 dark:bg-[#121622]/75 dark:shadow-[0_-4px_24px_rgba(0,0,0,0.4),inset_0_1px_1px_0_rgba(255,255,255,0.08)] md:hidden ${isOpen ? 'pointer-events-none hidden' : 'block'}`} aria-label="Navegación principal">
         {navigationItems.map((item) => {
           const Icon = item.icon;
           const isActive = activeSection === item.key;
@@ -148,20 +147,27 @@ export default function Sidebar({
               key={`mobile-${item.key}`}
               type="button"
               onClick={() => handleSectionSelect(item.key)}
-              className={`flex min-h-12 min-w-[4.5rem] flex-col items-center justify-center gap-0.5 rounded-2xl px-3 py-1 text-[10px] font-medium transition-all duration-150 ease-out active:scale-[0.98] ${
-                isActive
-                  ? 'bg-orange-500/20 text-orange-600 dark:text-orange-300'
-                  : 'text-slate-500 hover:bg-black/5 dark:text-slate-400 dark:hover:bg-white/5'
-              }`}
+              className="group flex h-full w-full flex-col items-center justify-center active:scale-95"
             >
-              <span className={`flex h-7 items-center rounded-full px-3 ${isActive ? 'bg-orange-500/20' : ''}`}>
+              <span
+                className={`flex h-7 w-14 items-center justify-center rounded-full transition-all duration-200 ease-out ${
+                  isActive
+                    ? 'bg-orange-500/20 text-orange-400 shadow-sm dark:text-orange-300'
+                    : 'bg-transparent text-slate-400 hover:text-slate-200'
+                }`}
+              >
                 <Icon className="h-4 w-4" strokeWidth={1.75} />
               </span>
-              <span>{item.key === 'consolidado' ? 'Balance' : item.key === 'planilla' ? 'Planilla' : item.label}</span>
+              <span
+                className={`mt-0.5 text-center text-[10px] tracking-wide transition-colors ${
+                  isActive ? 'font-semibold text-orange-400' : 'font-medium text-slate-400'
+                }`}
+              >
+                {item.key === 'consolidado' ? 'Balance' : item.key === 'planilla' ? 'Planilla' : item.label}
+              </span>
             </button>
           );
         })}
-        </div>
       </nav>
     </>
   );

@@ -121,7 +121,7 @@ html.dark .liquid-input {
 }
 
 html:not(.theme-light) .mobile-bottom-nav {
-  background-color: rgb(20 18 24 / 0.98);
+  background-color: rgb(18 22 34 / 0.75);
 }
 
 html.theme-light body {
