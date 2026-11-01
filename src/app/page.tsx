@@ -421,10 +421,25 @@ export default function Home() {
           .select('id, nombre, direccion, es_matriz, activa, usar_plantilla_fija, cantidad_colaboradores')
           .order('nombre', { ascending: true }),
         supabase.from('empleados').select('id, sucursal_id, nombre_completo, area, activo').order('nombre_completo', { ascending: true }),
-        supabase
-          .from('ventas')
-          .select('id, sucursal_id, empleado_id, area, fecha_venta, fecha_inicio_corte, fecha_fin_corte, tipo_periodo, notas_recaudacion, monto_bruto, anulado')
-          .order('fecha_venta', { ascending: false }),
+        (() => {
+          let ventasQuery = supabase
+            .from('ventas')
+            .select('id, sucursal_id, empleado_id, area, fecha_venta, fecha_inicio_corte, fecha_fin_corte, tipo_periodo, notas_recaudacion, monto_bruto, anulado')
+            .order('fecha_inicio_corte', { ascending: false })
+            .range(0, 9999);
+
+          if (fechaDesde) {
+            ventasQuery = ventasQuery.gte('fecha_inicio_corte', fechaDesde);
+          }
+          if (fechaHasta) {
+            ventasQuery = ventasQuery.lte('fecha_inicio_corte', fechaHasta);
+          }
+          if (selectedBranch !== 'all' && selectedBranch !== 'corporativo') {
+            ventasQuery = ventasQuery.eq('sucursal_id', selectedBranch);
+          }
+
+          return ventasQuery;
+        })(),
         supabase
           .from('gastos')
           .select('id, sucursal_id, categoria, descripcion, fecha_gasto, monto, es_gasto_general, anulado')
@@ -487,19 +502,13 @@ export default function Home() {
     } finally {
       setIsLoadingData(false);
     }
-  }, []);
+  }, [fechaDesde, fechaHasta, selectedBranch]);
 
   useEffect(() => {
     if (!isFrozen) {
       void fetchData();
     }
   }, [fetchData, isFrozen]);
-
-  useEffect(() => {
-    if (!selectedFarmaciaId && sucursales.length > 0) {
-      setSelectedFarmaciaId(String(sucursales[0].id));
-    }
-  }, [selectedFarmaciaId, sucursales]);
 
   const applyDatePreset = useCallback(
     (preset: 'hoy' | 'semana' | 'mes' | 'anio' | 'personalizado') => {
@@ -1064,7 +1073,7 @@ export default function Home() {
   };
 
   const sectionTitleMap: Record<SectionKey, string> = {
-    ventas: 'Ventas y Arqueos',
+    ventas: 'Ventas',
     planilla: 'Planilla y Bonificaciones',
     gastos: 'Gastos',
     consolidado: 'Consolidado de Gastos',
@@ -1168,7 +1177,11 @@ export default function Home() {
               <div className="flex w-full shrink-0 items-center gap-2 sm:mt-0 sm:w-auto">
                 <select
                   value={selectedBranch}
-                  onChange={(event) => setSelectedBranch(event.target.value)}
+                  onChange={(event) => {
+                    const value = event.target.value;
+                    setSelectedBranch(value);
+                    setSelectedFarmaciaId(value === 'all' ? '' : value);
+                  }}
                   className="mt-2 w-full rounded-xl border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-200 outline-none transition focus:border-orange-400 sm:mt-0 sm:w-auto"
                 >
                   <option value="all">Todas las sucursales</option>
@@ -1224,8 +1237,12 @@ export default function Home() {
                 resumenPorSucursal={ventasDashboard.resumenPorSucursal}
                 ventasActivas={ventasDashboard.ventasActivas}
                 totalGeneral={ventasDashboard.totalGeneral}
+                totalCortesTodasSucursales={ventasDashboard.totalCortesTodasSucursales}
                 selectedFarmaciaId={selectedFarmaciaId}
-                onSelectFarmacia={setSelectedFarmaciaId}
+                onSelectFarmacia={(sucursalId) => {
+                  setSelectedFarmaciaId(sucursalId);
+                  setSelectedBranch(sucursalId || 'all');
+                }}
                 onAbrirRegistroVenta={() => setModalVentaAbierto(true)}
                 onVerHistorial={setSelectedFarmaciaId}
                 fechaDesde={fechaDesde}

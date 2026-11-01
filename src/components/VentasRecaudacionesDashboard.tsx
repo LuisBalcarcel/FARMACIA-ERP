@@ -1,6 +1,6 @@
 'use client';
 
-import { Edit3, Eye, Lock, Plus, Store } from 'lucide-react';
+import { ChevronDown, Edit3, Eye, Lock, Plus, Store } from 'lucide-react';
 import { useMemo } from 'react';
 import type { BonusCascade } from '@/lib/contabilidad';
 import type { MoneyFilterMode, VentaCore, VentaSucursalResumen } from '@/hooks/useVentasFilter';
@@ -16,6 +16,7 @@ type VentasRecaudacionesDashboardProps = {
   resumenPorSucursal: VentaSucursalResumen[];
   ventasActivas: VentaCore[];
   totalGeneral: number;
+  totalCortesTodasSucursales: number;
   selectedFarmaciaId: string;
   onSelectFarmacia: (sucursalId: string) => void;
   onAbrirRegistroVenta: () => void;
@@ -44,9 +45,57 @@ const formatCurrency = (value: number) =>
 
 const formatDate = (value?: string) => {
   if (!value) return '-';
-  const parsed = new Date(value);
+  const dateKey = normalizeDateKey(value);
+  const parsed = dateKey
+    ? new Date(
+        Number(dateKey.slice(0, 4)),
+        Number(dateKey.slice(5, 7)) - 1,
+        Number(dateKey.slice(8, 10)),
+      )
+    : new Date(value);
   if (Number.isNaN(parsed.getTime())) return value;
   return new Intl.DateTimeFormat('es-GT', { day: '2-digit', month: '2-digit', year: 'numeric' }).format(parsed);
+};
+
+type HistoriaPeriodo = {
+  key: string;
+  label: string;
+  inicio: string;
+  fin: string;
+  cortes: VentaCore[];
+  total: number;
+};
+
+const normalizeDateKey = (value?: string) => {
+  const key = value?.slice(0, 10) ?? '';
+  return /^\d{4}-\d{2}-\d{2}$/.test(key) ? key : null;
+};
+
+const nextMonthKey = (monthKey: string) => {
+  const [year, month] = monthKey.split('-').map(Number);
+  const nextYear = month === 12 ? year + 1 : year;
+  const nextMonth = month === 12 ? 1 : month + 1;
+  return `${nextYear}-${String(nextMonth).padStart(2, '0')}`;
+};
+
+const getMonthEnd = (monthKey: string) => {
+  const [year, month] = monthKey.split('-').map(Number);
+  return `${year}-${String(month).padStart(2, '0')}-${String(new Date(Date.UTC(year, month, 0)).getUTCDate()).padStart(2, '0')}`;
+};
+
+const getCalendarMonthKeys = (fromDate: string, toDate: string) => {
+  const from = normalizeDateKey(fromDate);
+  const to = normalizeDateKey(toDate);
+  if (!from || !to || from > to) return [];
+
+  const keys: string[] = [];
+  let current = from.slice(0, 7);
+  const last = to.slice(0, 7);
+  while (current <= last) {
+    keys.push(current);
+    current = nextMonthKey(current);
+  }
+  return keys;
 };
 
 export default function VentasRecaudacionesDashboard({
@@ -54,6 +103,7 @@ export default function VentasRecaudacionesDashboard({
   resumenPorSucursal,
   ventasActivas,
   totalGeneral,
+  totalCortesTodasSucursales,
   selectedFarmaciaId,
   onSelectFarmacia,
   onAbrirRegistroVenta,
@@ -73,19 +123,62 @@ export default function VentasRecaudacionesDashboard({
   cascadeGlobal,
   cascadePorSucursal,
 }: VentasRecaudacionesDashboardProps) {
-  const historiaSucursal = useMemo(() => {
+  const historiaPeriodos = useMemo<HistoriaPeriodo[]>(() => {
     if (!selectedFarmaciaId) return [];
 
-    return ventasActivas
+    const grouped = new Map<string, VentaCore[]>();
+    ventasActivas
       .filter((venta) => String(venta.sucursal_id ?? '') === selectedFarmaciaId)
-      .slice()
-      .sort((a, b) => {
-        const aDate = new Date(a.fecha_fin_corte ?? a.fecha_venta ?? 0).getTime();
-        const bDate = new Date(b.fecha_fin_corte ?? b.fecha_venta ?? 0).getTime();
-        return bDate - aDate;
+      .forEach((venta) => {
+        const key = normalizeDateKey(venta.fecha_inicio_corte)?.slice(0, 7);
+        if (key) grouped.set(key, [...(grouped.get(key) ?? []), venta]);
+      });
+
+    const calendarKeys = getCalendarMonthKeys(fechaDesde, fechaHasta);
+    const monthKeys = calendarKeys.length > 0
+      ? calendarKeys
+      : Array.from(grouped.keys()).sort((a, b) => b.localeCompare(a));
+
+    return monthKeys
+      .map((key) => {
+        const cortes = grouped.get(key) ?? [];
+        const ordered = cortes.slice().sort((a, b) => {
+          const aDate = normalizeDateKey(a.fecha_inicio_corte) ?? '';
+          const bDate = normalizeDateKey(b.fecha_inicio_corte) ?? '';
+          return aDate.localeCompare(bDate);
+        });
+        const first = ordered[0];
+        const last = ordered[ordered.length - 1];
+        const monthDate = new Date(`${key}-01T00:00:00`);
+        const theoreticalStart = `${key}-01`;
+        const theoreticalEnd = getMonthEnd(key);
+        return {
+          key,
+          label: new Intl.DateTimeFormat('es-GT', { month: 'long', year: 'numeric' }).format(monthDate),
+          inicio: first?.fecha_inicio_corte ?? theoreticalStart,
+          fin: last?.fecha_inicio_corte ?? theoreticalEnd,
+          cortes: ordered,
+          total: ordered.reduce((sum, venta) => sum + Number(venta.monto_bruto ?? 0), 0),
+        };
       })
-      .slice(0, 8);
-  }, [ventasActivas, selectedFarmaciaId]);
+      .sort((a, b) => b.key.localeCompare(a.key));
+  }, [fechaDesde, fechaHasta, ventasActivas, selectedFarmaciaId]);
+
+  const sucursalesVisibles = useMemo(
+    () =>
+      selectedFarmaciaId
+        ? sucursales.filter((sucursal) => String(sucursal.id) === selectedFarmaciaId)
+        : sucursales.filter((sucursal) => (resumenPorSucursal.find((row) => row.sucursalId === String(sucursal.id))?.cortes ?? 0) > 0),
+    [resumenPorSucursal, selectedFarmaciaId, sucursales],
+  );
+
+  const resumenVisible = useMemo(
+    () =>
+      resumenPorSucursal.filter(
+        (row) => (!selectedFarmaciaId || row.sucursalId === selectedFarmaciaId) && row.cortes > 0,
+      ),
+    [resumenPorSucursal, selectedFarmaciaId],
+  );
 
   return (
     <section className="space-y-5">
@@ -94,7 +187,7 @@ export default function VentasRecaudacionesDashboard({
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <p className="text-[11px] font-semibold uppercase tracking-wider text-blue-300">Ingreso y control de ventas</p>
-              <h2 className="mt-2 text-2xl font-semibold text-white">Ventas y Arqueos</h2>
+              <h2 className="mt-2 text-2xl font-semibold text-white">Ventas</h2>
               <p className="mt-2 text-sm text-slate-300">Análisis por sucursal con trazabilidad de cortes y recaudación consolidada.</p>
             </div>
 
@@ -135,7 +228,7 @@ export default function VentasRecaudacionesDashboard({
               { key: 'hoy', label: 'Hoy' },
               { key: 'semana', label: 'Esta Semana' },
               { key: 'mes', label: 'Este Mes' },
-              { key: 'anio', label: 'Este Ano' },
+              { key: 'anio', label: 'Este Año' },
               { key: 'personalizado', label: 'Rango Libre' },
             ].map((preset) => (
               <button
@@ -153,7 +246,7 @@ export default function VentasRecaudacionesDashboard({
             ))}
           </div>
 
-          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 md:grid-cols-4">
+          <div className="flex flex-col gap-2 sm:flex-row">
             <label className="space-y-1 text-xs uppercase tracking-[0.12em] text-slate-300">
               <span>Desde</span>
               <input
@@ -211,27 +304,40 @@ export default function VentasRecaudacionesDashboard({
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
-        {sucursales.map((sucursal) => {
+      <div className="flex flex-wrap items-center gap-1.5">
+        <button
+          type="button"
+          onClick={() => onSelectFarmacia('')}
+          className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-bold transition ${
+            selectedFarmaciaId === ''
+              ? 'border-blue-500/50 bg-blue-500/10 text-white'
+              : 'border-slate-700 bg-slate-900 text-slate-200 hover:border-blue-400'
+          }`}
+        >
+          <Store className="h-3.5 w-3.5" />
+          Todas las sucursales
+          <span className="text-[10px] font-normal text-slate-400">({totalCortesTodasSucursales} cortes)</span>
+        </button>
+        {sucursalesVisibles.map((sucursal) => {
           const selected = selectedFarmaciaId === String(sucursal.id);
           const resumen = resumenPorSucursal.find((item) => item.sucursalId === String(sucursal.id));
 
+          if (!resumen || resumen.cortes === 0) return null;
           return (
             <button
               key={String(sucursal.id)}
               type="button"
               onClick={() => onSelectFarmacia(String(sucursal.id))}
-              className={`rounded-xl border p-2.5 text-left transition ${
+              className={`rounded-lg border px-2.5 py-1.5 text-left transition ${
                 selected
-                  ? 'border-orange-500/40 bg-orange-500/10'
+                  ? 'border-amber-500 bg-amber-500/10 text-amber-400'
                   : 'border-slate-800 bg-slate-900 hover:border-blue-500/40 hover:bg-slate-800/60'
               }`}
             >
               <div className="flex items-center justify-between gap-2">
-                  <span className="truncate text-sm font-semibold text-white">{sucursal.nombre}</span>
-                <Store className="h-4 w-4 text-slate-400" />
+                <span className={`truncate text-xs font-bold ${selected ? 'text-amber-400' : 'text-white'}`}>{sucursal.nombre}</span>
               </div>
-              <p className="mt-2 text-xs text-slate-400">{resumen?.cortes ?? 0} cortes</p>
+              <p className="text-[10px] text-slate-400">{resumen.cortes} cortes</p>
             </button>
           );
         })}
@@ -255,7 +361,7 @@ export default function VentasRecaudacionesDashboard({
             </tr>
           </thead>
           <tbody>
-            {resumenPorSucursal.map((row) => {
+            {resumenVisible.map((row) => {
               const cascade = cascadePorSucursal[row.sucursalId] ?? {
                 totalVentasRango: row.totalRecaudado,
                 bonoTotalFarmacias: 0,
@@ -316,54 +422,91 @@ export default function VentasRecaudacionesDashboard({
                 </tr>
               );
             })}
+            {resumenVisible.length === 0 && (
+              <tr>
+                <td colSpan={11} className="px-4 py-8 text-center text-sm font-medium text-slate-300">
+                  No hay farmacias con cortes o actividad en el rango seleccionado.
+                </td>
+              </tr>
+            )}
           </tbody>
         </table>
       </div>
 
-      <div className="grid gap-3 md:grid-cols-3">
-        <div className="rounded-2xl border border-slate-800 bg-slate-900 p-4">
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+        <div className="min-w-0 rounded-2xl border border-slate-800 bg-slate-900 p-3 sm:p-4">
+          <p className="text-xs uppercase tracking-[0.14em] text-slate-400">Total Recaudado</p>
+          <p className="mt-2 truncate font-mono text-lg font-bold text-emerald-400 sm:text-2xl">{formatCurrency(totalGeneral)}</p>
+        </div>
+        <div className="min-w-0 rounded-2xl border border-slate-800 bg-slate-900 p-3 sm:p-4">
           <p className="text-xs uppercase tracking-[0.14em] text-slate-400">Bono Total (1%)</p>
-          <p className="mt-2 font-mono text-2xl font-bold text-emerald-400">{formatCurrency(cascadeGlobal.bonoTotalFarmacias)}</p>
+          <p className="mt-2 truncate font-mono text-lg font-bold text-emerald-400 sm:text-2xl">{formatCurrency(cascadeGlobal.bonoTotalFarmacias)}</p>
         </div>
-        <div className="rounded-2xl border border-slate-800 bg-slate-900 p-4">
+        <div className="min-w-0 rounded-2xl border border-slate-800 bg-slate-900 p-3 sm:p-4">
           <p className="text-xs uppercase tracking-[0.14em] text-slate-400">Bono Bodega (40%)</p>
-          <p className="mt-2 font-mono text-2xl font-bold text-emerald-400">{formatCurrency(cascadeGlobal.bonoBodega)}</p>
+          <p className="mt-2 truncate font-mono text-lg font-bold text-emerald-400 sm:text-2xl">{formatCurrency(cascadeGlobal.bonoBodega)}</p>
         </div>
-        <div className="rounded-2xl border border-slate-800 bg-slate-900 p-4">
+        <div className="min-w-0 rounded-2xl border border-slate-800 bg-slate-900 p-3 sm:p-4">
           <p className="text-xs uppercase tracking-[0.14em] text-slate-400">Bono Dependientes (60%)</p>
-          <p className="mt-2 font-mono text-2xl font-bold text-emerald-400">{formatCurrency(cascadeGlobal.bonoDependientes)}</p>
+          <p className="mt-2 truncate font-mono text-lg font-bold text-emerald-400 sm:text-2xl">{formatCurrency(cascadeGlobal.bonoDependientes)}</p>
         </div>
       </div>
 
       <div className="rounded-2xl border border-slate-800 bg-slate-900/70 p-4">
         <div className="mb-3 flex items-center justify-between">
           <h3 className="text-lg font-semibold text-white">Historial de {sucursales.find((item) => String(item.id) === selectedFarmaciaId)?.nombre ?? 'farmacia'}</h3>
-          <span className="text-xs uppercase tracking-[0.14em] text-slate-400">Ultimos cortes</span>
+          <span className="text-xs uppercase tracking-[0.14em] text-slate-400">Resumen por período</span>
         </div>
 
-        <div className="overflow-x-auto">
-          <table className="min-w-[760px] w-full text-left text-sm">
+        <div className="overflow-x-auto rounded-xl [-webkit-overflow-scrolling:touch]">
+          <table className="min-w-[900px] w-full text-left text-sm">
             <thead className="text-slate-300">
               <tr className="border-b border-slate-800">
-                <th className="px-3 py-2">Periodo</th>
-                <th className="px-3 py-2 text-right">Monto</th>
-                <th className="px-3 py-2">Notas de Arqueo</th>
+                <th className="whitespace-nowrap px-3 py-2">Período / Rango</th>
+                <th className="whitespace-nowrap px-3 py-2 text-right">Cortes</th>
+                <th className="whitespace-nowrap px-3 py-2 text-right">Monto Total</th>
+                <th className="whitespace-nowrap px-3 py-2">Detalle / Desglose</th>
               </tr>
             </thead>
             <tbody>
-              {historiaSucursal.map((venta) => (
-                <tr key={String(venta.id)} className="border-b border-slate-800/80">
-                  <td className="px-3 py-2 text-slate-200">
-                    {formatDate(venta.fecha_inicio_corte ?? venta.fecha_venta)} - {formatDate(venta.fecha_fin_corte ?? venta.fecha_venta)}
+              {historiaPeriodos.map((periodo) => (
+                <tr key={periodo.key} className="border-b border-slate-800/80 align-top">
+                  <td className={`px-3 py-3 ${periodo.cortes.length > 0 ? 'text-slate-200' : 'text-slate-500'}`}>
+                    <p className={`font-semibold capitalize ${periodo.cortes.length > 0 ? 'text-slate-100' : 'text-slate-500'}`}>{periodo.label}</p>
+                    <p className="mt-1 text-xs">
+                      {formatDate(periodo.inicio)} - {formatDate(periodo.fin)}
+                    </p>
                   </td>
-                  <td className="px-3 py-2 text-right font-mono text-emerald-400">{formatCurrency(Number(venta.monto_bruto ?? 0))}</td>
-                  <td className="px-3 py-2 text-slate-300">{venta.notas_recaudacion?.trim() || 'Sin notas'}</td>
+                  <td className={`px-3 py-3 text-right font-medium ${periodo.cortes.length > 0 ? 'text-slate-200' : 'text-slate-500'}`}>{periodo.cortes.length}</td>
+                  <td className={`px-3 py-3 text-right font-mono font-semibold ${periodo.cortes.length > 0 ? 'text-emerald-400' : 'text-slate-500'}`}>{formatCurrency(periodo.total)}</td>
+                  <td className="px-3 py-3">
+                    {periodo.cortes.length > 0 ? (
+                      <details>
+                        <summary className="flex cursor-pointer list-none items-center gap-1 text-xs font-semibold text-blue-300 hover:text-blue-200">
+                          <ChevronDown className="h-4 w-4" />
+                          Ver días
+                        </summary>
+                        <div className="mt-2 space-y-1 border-l border-slate-700 pl-3">
+                          {periodo.cortes.map((venta) => (
+                            <div key={String(venta.id)} className="flex justify-between gap-4 text-xs text-slate-300">
+                              <span>{formatDate(venta.fecha_inicio_corte)}</span>
+                              <span className="font-mono text-emerald-300">{formatCurrency(Number(venta.monto_bruto ?? 0))}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </details>
+                    ) : (
+                      <span className="text-xs text-slate-500">-</span>
+                    )}
+                  </td>
                 </tr>
               ))}
-              {historiaSucursal.length === 0 && (
+              {historiaPeriodos.length === 0 && (
                 <tr>
-                  <td colSpan={3} className="px-3 py-5 text-center text-sm text-slate-400">
-                    No hay cortes registrados para esta farmacia dentro del rango seleccionado.
+                  <td colSpan={4} className="px-3 py-8 text-center text-sm font-medium text-slate-300">
+                    {selectedFarmaciaId
+                      ? 'No hay cortes registrados para esta farmacia dentro del rango seleccionado.'
+                      : 'Selecciona una farmacia con actividad para consultar su historial consolidado.'}
                   </td>
                 </tr>
               )}

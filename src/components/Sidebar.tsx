@@ -21,7 +21,7 @@ type SidebarProps = {
 };
 
 const navigationItems: Array<{ key: SectionKey; label: string; description: string; icon: typeof LayoutGrid }> = [
-  { key: 'ventas', label: 'Ventas y Arqueos', description: 'Núcleo de ventas por período', icon: LayoutGrid },
+  { key: 'ventas', label: 'Ventas', description: 'Núcleo de ventas por período', icon: LayoutGrid },
   { key: 'planilla', label: 'Planilla y Bonificaciones', description: 'Cortes quincenales e IGSS', icon: ReceiptText },
   { key: 'gastos', label: 'Gastos', description: 'Registro con vigencias amplias', icon: LibraryBig },
   { key: 'consolidado', label: 'Consolidado de Gastos', description: 'Regla del tercio y balance', icon: Scale },

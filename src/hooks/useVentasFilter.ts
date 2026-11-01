@@ -157,6 +157,14 @@ export function useVentasFilter({
   moneyMode,
   moneyValue,
 }: VentasFilterParams) {
+  const totalCortesTodasSucursales = useMemo(() => {
+    return ventas.filter((venta) => {
+      if (venta.anulado) return false;
+      if (!isCorteContainedInRange(venta, fechaDesde, fechaHasta)) return false;
+      return moneyPredicate(normalizeAmount(venta.monto_bruto), moneyMode, moneyValue);
+    }).length;
+  }, [ventas, fechaDesde, fechaHasta, moneyMode, moneyValue]);
+
   const ventasActivas = useMemo(() => {
     return ventas.filter((venta) => {
       if (venta.anulado) return false;
@@ -208,5 +216,6 @@ export function useVentasFilter({
     ventasActivas,
     totalGeneral,
     resumenPorSucursal,
+    totalCortesTodasSucursales,
   };
 }
