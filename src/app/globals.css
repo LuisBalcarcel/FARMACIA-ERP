@@ -626,3 +626,27 @@ html.theme-light .catalog-status-inactive {
   background-color: #fff1f2 !important;
   color: #9f1239 !important;
 }
+
+@media print {
+  .report-header-block,
+  .bg-blue-900,
+  .bg-blue-800,
+  thead,
+  thead th {
+    background-color: #334155 !important;
+  }
+
+  .report-header-block *,
+  .bg-blue-900 *,
+  .bg-blue-800 *,
+  thead *,
+  thead th {
+    color: #ffffff !important;
+  }
+
+  .report-header-block h1,
+  h1,
+  .text-white {
+    color: #ffffff !important;
+  }
+}

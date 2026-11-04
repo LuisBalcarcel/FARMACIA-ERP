@@ -1,6 +1,6 @@
 'use client';
 
-import { BarChart3, Printer, X } from 'lucide-react';
+import { Printer, X } from 'lucide-react';
 import { useMemo } from 'react';
 import type { VentaCore } from '@/hooks/useVentasFilter';
 import type { BonusCascade } from '@/lib/contabilidad';
@@ -84,124 +84,162 @@ export default function ReporteVentas({
     ? sucursales.find((sucursal) => String(sucursal.id) === selectedFarmaciaId)?.nombre ?? 'Sucursal seleccionada'
     : 'Todas las sucursales';
   const totalGeneral = ventas.reduce((sum, venta) => sum + Number(venta.monto_bruto ?? 0), 0);
+  const sucursalResumen = useMemo(() => {
+    const grouped = new Map<string, { nombre: string; total: number; cortes: number }>();
+
+    ventas.forEach((venta) => {
+      const id = String(venta.sucursal_id ?? 'sin-sucursal');
+      const nombre = sucursales.find((sucursal) => String(sucursal.id) === id)?.nombre ?? 'Sucursal sin nombre';
+      const current = grouped.get(id) ?? { nombre, total: 0, cortes: 0 };
+      current.total += Number(venta.monto_bruto ?? 0);
+      current.cortes += 1;
+      grouped.set(id, current);
+    });
+
+    return Array.from(grouped.values()).sort((a, b) => b.total - a.total);
+  }, [sucursales, ventas]);
+  const maxSucursal = Math.max(...sucursalResumen.map((sucursal) => sucursal.total), 1);
+  const generatedAt = new Intl.DateTimeFormat('es-GT', {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  }).format(new Date());
+  const hasBonusDistribution = cascade.bonoBodega > 0 || cascade.bonoDependientes > 0;
+  const bonusTotal = cascade.bonoBodega + cascade.bonoDependientes;
+  const bodegaShare = bonusTotal > 0 ? (cascade.bonoBodega / bonusTotal) * 100 : 0;
+  const chartTitle = ventas.length === 0
+    ? 'Visualización'
+    : sucursalResumen.length > 1
+      ? 'Comparativa por sucursal'
+      : periodos.length > 1
+        ? 'Tendencia por período'
+        : 'Recaudación del período';
 
   if (!isOpen) return null;
 
   return (
     <div className="report-print-overlay fixed inset-0 z-[60] flex items-center justify-center bg-slate-950/75 px-3 py-4 backdrop-blur-md" data-report-overlay>
-      <div id="report-printable-area" className="report-modal report-printable-area liquid-glass relative flex max-h-[92vh] w-full max-w-5xl flex-col overflow-hidden rounded-2xl bg-white p-6 shadow-2xl ring-1 ring-slate-200 dark:bg-slate-900 dark:ring-white/10 md:p-8" data-report-container data-report-content data-report-modal>
-        <header className="report-executive-header flex flex-nowrap items-start justify-between gap-6 border-b-2 border-orange-500/70 px-5 py-4 sm:px-7 print:flex print:flex-row print:flex-nowrap print:justify-between print:w-full">
-          <div className="flex min-w-0 flex-col">
-            <p className="text-2xl font-black tracking-wide text-blue-900 dark:text-white md:text-3xl">ERP FARMACIAS</p>
-            <p className="mt-1 text-[10px] font-semibold uppercase tracking-[0.22em] text-orange-600">Control y recaudación</p>
+      <div id="report-printable-area" className="report-modal report-printable-area relative flex max-h-[92vh] w-full max-w-5xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl ring-1 ring-slate-200 dark:bg-slate-900 dark:ring-white/10 print:rounded-none print:bg-white print:shadow-none print:ring-0" data-report-container data-report-content data-report-modal>
+        <div className="report-header-block relative z-10 flex w-full flex-col items-center justify-center rounded-t-2xl border-b-4 border-orange-500 bg-slate-700 px-4 pb-6 pt-6 text-center text-white md:px-8 md:pb-8 md:pt-14 print:rounded-none print:pt-8">
+          <div className="z-50 flex w-full items-center justify-end gap-2 p-4 pb-0 md:absolute md:right-4 md:top-4 md:w-auto md:p-0 no-print print:hidden">
+          <button
+            type="button"
+            onClick={() => window.print()}
+            className="flex items-center gap-2 rounded-lg border border-white/30 bg-white/10 px-3 py-1.5 text-xs font-semibold text-white shadow-sm backdrop-blur-md transition-all hover:border-white hover:bg-white/20"
+          >
+            <Printer className="h-4 w-4" />
+            Imprimir / Guardar PDF
+          </button>
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-full bg-black/20 p-1.5 text-white/80 backdrop-blur-md transition-all hover:bg-red-500 hover:text-white"
+            title="Cerrar"
+            aria-label="Cerrar reporte"
+          >
+            <X className="h-5 w-5" />
+          </button>
           </div>
-          <div className="flex min-w-0 flex-col items-end gap-3 text-right">
-            <div className="no-print flex items-center gap-3">
-              <button
-                type="button"
-                onClick={() => window.print()}
-                className="no-print inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm transition-all hover:bg-slate-50 dark:border-white/20 dark:bg-white/10 dark:text-white dark:hover:bg-white/20"
-              >
-                <Printer className="h-4 w-4" />
-                Imprimir / Guardar PDF
-              </button>
-              <button
-                type="button"
-                onClick={onClose}
-                className="no-print rounded-full p-2 text-slate-400 transition-colors hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-500/20"
-                aria-label="Cerrar reporte"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-            <div className="report-header-info mt-1 text-right print:block print:text-right">
-              <h2 className="text-xl font-bold text-slate-900 dark:text-white">Reporte de Ventas</h2>
-              <p className="mt-0.5 text-xs text-slate-600 dark:text-slate-300">
-                Filtros: {formatDate(fechaDesde)} - {formatDate(fechaHasta)} · {farmaciaLabel}
-              </p>
-            </div>
+          <h1 className="break-words text-center text-2xl font-black uppercase tracking-widest text-white sm:text-3xl md:text-4xl">Reporte de Ventas</h1>
+          <p className="mt-2 text-sm font-medium text-white">ERP FARMACIAS - CONTROL Y RECAUDACIÓN</p>
+          <div className="mt-2 grid grid-cols-2 gap-x-6 gap-y-1 text-left text-xs text-white sm:flex sm:items-center sm:justify-center sm:gap-6">
+            <span><strong className="text-white">Período:</strong> {formatDate(fechaDesde)} - {formatDate(fechaHasta)}</span>
+            <span><strong className="text-white">Alcance:</strong> {farmaciaLabel}</span>
+            <span><strong className="text-white">Generado:</strong> {generatedAt}</span>
           </div>
-        </header>
+        </div>
 
-        <div className="overflow-y-auto p-5 sm:p-7">
-          <div className="report-summary-grid mb-6 flex w-full flex-col gap-6 md:flex-row print:flex print:flex-row print:flex-nowrap print:w-full">
-            <section className="report-kpi-panel w-full rounded-2xl bg-blue-800 p-5 text-white shadow-lg shadow-blue-900/20 md:w-5/12 print:w-[45%]">
-              <h3 className="mb-3 text-sm font-bold uppercase tracking-[0.12em] text-orange-200">Resumen de Recaudación</h3>
-              <div className="flex flex-col gap-2">
-                {[
-                  ['Total de Cortes', String(ventas.length)],
-                  ['Venta Consolidada', formatCurrency(totalGeneral)],
-                  ['Bono Total (1%)', formatCurrency(cascade.bonoTotalFarmacias)],
-                  ['Bono Bodega (40%)', formatCurrency(cascade.bonoBodega)],
-                  ['Bono Dependientes', formatCurrency(cascade.bonoDependientes)],
-                ].map(([label, value]) => (
-                  <div key={label} className="flex items-baseline justify-between gap-3 border-b border-blue-700/50 pb-1.5 text-sm">
-                    <span className="text-blue-100">{label}</span>
-                    <span className="font-mono font-bold tabular-nums text-white">{value}</span>
-                  </div>
-                ))}
+        <div className="report-scroll-area overflow-y-auto">
+          <div className="report-kpi-ribbon grid w-full grid-cols-2 gap-3 border-b border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-800 sm:grid-cols-3 md:grid-cols-5 md:gap-4 md:p-6 print:border-b-2 print:border-slate-300 print:bg-white">
+            {[
+              ['Total de Cortes', String(ventas.length)],
+              ['Venta Consolidada', formatCurrency(totalGeneral)],
+              ['Bono Total (1%)', formatCurrency(cascade.bonoTotalFarmacias)],
+              ['Bono Bodega (40%)', formatCurrency(cascade.bonoBodega)],
+              ['Bono Dependientes', formatCurrency(cascade.bonoDependientes)],
+            ].map(([label, value]) => (
+              <div key={label} className="flex flex-col text-center">
+                <span className="text-[10px] font-bold uppercase text-slate-500 dark:text-slate-400 print:text-slate-600">{label}</span>
+                <span className="mt-1 font-mono text-lg font-black tabular-nums text-blue-900 dark:text-white print:text-blue-900">{value}</span>
               </div>
-            </section>
-
-            <section className="report-chart-container w-full rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-800/50 md:w-7/12 print:w-[55%]">
-              <div className="mb-2 flex items-center gap-2">
-                <BarChart3 className="h-4 w-4 text-blue-700" />
-                <h3 className="text-sm font-semibold text-slate-800">Comparativa por período</h3>
-              </div>
-              <div className="report-chart flex h-40 max-h-40 w-full items-end gap-3 overflow-x-auto border-b border-slate-200 px-2 pb-2 print:h-[140px] print:max-h-[140px]">
-                {periodos.length === 0 ? (
-                  <p className="m-auto text-sm text-slate-500">No hay ventas para los filtros seleccionados.</p>
-                ) : periodos.map((periodo) => (
-                  <div key={periodo.key} className="flex h-full min-w-20 flex-1 flex-col items-center justify-end gap-1">
-                    <span className="text-[10px] font-mono text-blue-900">{formatCurrency(periodo.total)}</span>
-                    <div
-                      className="w-full max-w-16 rounded-t-lg bg-blue-600"
-                      style={{ height: `${Math.max((periodo.total / maxPeriodo) * 100, 4)}%` }}
-                      title={`${periodo.label}: ${formatCurrency(periodo.total)}`}
-                    />
-                    <span className="max-w-24 truncate text-center text-[10px] capitalize text-slate-600">{periodo.label}</span>
-                  </div>
-                ))}
-              </div>
-            </section>
+            ))}
           </div>
 
-          <section className="report-table-wrapper overflow-x-auto rounded-2xl border border-slate-200">
-            <table className="w-full min-w-[680px] table-fixed text-left text-sm">
-              <thead className="bg-blue-900 text-white">
+          <div className="report-table-section w-full overflow-x-auto pb-2 p-4 md:p-6 scrollbar-thin scrollbar-thumb-slate-300">
+            <table className="w-full min-w-[600px] table-fixed border-collapse border border-slate-300 text-left text-sm dark:border-slate-600 print:border-slate-400">
+              <thead className="bg-slate-700">
                 <tr>
-                  <th className="w-[35%] px-4 py-3 text-xs uppercase tracking-wider">Período</th>
-                  <th className="w-[25%] px-4 py-3 text-left text-xs uppercase tracking-wider">Sucursal</th>
-                  <th className="w-[15%] px-4 py-3 text-center text-xs uppercase tracking-wider">Cortes</th>
-                  <th className="w-[25%] px-4 py-3 text-right text-xs uppercase tracking-wider">Subtotal período</th>
+                  <th className="w-[35%] border border-slate-300 px-4 py-3 text-center text-xs font-bold uppercase tracking-wider text-white dark:border-slate-600 print:border-slate-400">Período</th>
+                  <th className="w-[25%] border border-slate-300 px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-white dark:border-slate-600 print:border-slate-400">Sucursal</th>
+                  <th className="w-[15%] border border-slate-300 px-4 py-3 text-center text-xs font-bold uppercase tracking-wider text-white dark:border-slate-600 print:border-slate-400">Cortes</th>
+                  <th className="w-[25%] border border-slate-300 px-4 py-3 text-right text-xs font-bold uppercase tracking-wider text-white dark:border-slate-600 print:border-slate-400">Subtotal</th>
                 </tr>
               </thead>
               <tbody>
                 {periodos.map((periodo) => (
-                  <tr key={periodo.key} className="border-b border-slate-100 bg-white transition-colors hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:hover:bg-slate-800/50">
-                    <td className="px-4 py-3 font-semibold capitalize text-slate-700 dark:text-slate-300">{periodo.label}</td>
-                    <td className="px-4 py-3 text-left text-slate-700 dark:text-slate-300">{farmaciaLabel}</td>
-                    <td className="px-4 py-3 text-center text-slate-700 dark:text-slate-300">{periodo.ventas.length}</td>
-                    <td className="px-4 py-3 text-right font-mono font-semibold tabular-nums text-slate-700 dark:text-slate-300">{formatCurrency(periodo.total)}</td>
+                  <tr key={periodo.key} className="border-b border-slate-300 transition-colors even:bg-slate-50 hover:bg-slate-100 dark:border-slate-700 dark:even:bg-slate-800/50">
+                    <td className="border border-slate-300 px-4 py-2 text-center text-sm font-medium text-slate-700 dark:border-slate-600 dark:text-slate-200 print:border-slate-400 print:text-slate-800">{periodo.label}</td>
+                    <td className="border border-slate-300 px-4 py-2 text-left text-sm font-medium text-slate-700 dark:border-slate-600 dark:text-slate-200 print:border-slate-400 print:text-slate-800">{farmaciaLabel}</td>
+                    <td className="border border-slate-300 px-4 py-2 text-center text-sm font-medium text-slate-700 dark:border-slate-600 dark:text-slate-200 print:border-slate-400 print:text-slate-800">{periodo.ventas.length}</td>
+                    <td className="border border-slate-300 px-4 py-2 text-right text-sm font-mono font-semibold tabular-nums text-slate-700 dark:border-slate-600 dark:text-slate-200 print:border-slate-400 print:text-slate-800">{formatCurrency(periodo.total)}</td>
                   </tr>
                 ))}
               </tbody>
               <tfoot>
-                <tr className="border-t-2 border-orange-500 bg-slate-50 font-bold text-blue-900 dark:bg-slate-800 dark:text-white">
-                  <td colSpan={2} className="px-4 py-3 font-bold uppercase tracking-wider">Total general</td>
-                  <td className="px-4 py-3 text-center font-mono font-bold tabular-nums">{ventas.length}</td>
-                  <td className="px-4 py-3 text-right font-mono font-bold tabular-nums">{formatCurrency(totalGeneral)}</td>
+                <tr className="border-t-2 border-orange-500 bg-slate-100 font-bold text-blue-900 dark:bg-slate-800 dark:text-white">
+                  <td colSpan={2} className="border border-slate-300 px-4 py-2 font-bold uppercase tracking-wider dark:border-slate-600">Total general</td>
+                  <td className="border border-slate-300 px-4 py-2 text-center font-mono font-bold tabular-nums dark:border-slate-600">{ventas.length}</td>
+                  <td className="border border-slate-300 px-4 py-2 text-right font-mono font-bold tabular-nums dark:border-slate-600">{formatCurrency(totalGeneral)}</td>
                 </tr>
               </tfoot>
             </table>
+          </div>
+
+          <section className="report-chart-container w-full overflow-hidden border-t border-slate-200 p-4 dark:border-slate-700 md:p-6 print:mt-4 print:border-none">
+            <h3 className="mb-6 text-center text-lg font-bold uppercase tracking-wide text-blue-900 dark:text-white print:text-blue-900">{chartTitle}</h3>
+            <div className="report-chart flex h-64 max-h-64 w-full items-end gap-3 overflow-x-auto border-b border-slate-200 bg-white px-2 pb-2 dark:bg-transparent print:h-[200px] print:max-h-[200px]">
+              {ventas.length === 0 ? (
+                <p className="m-auto text-sm font-medium text-slate-500">Datos insuficientes para graficar.</p>
+              ) : sucursalResumen.length > 1 ? sucursalResumen.map((sucursal) => (
+                <div key={sucursal.nombre} className="flex h-full min-w-24 flex-1 flex-col items-center justify-end gap-1">
+                  <span className="text-[10px] font-mono text-blue-900">{formatCurrency(sucursal.total)}</span>
+                  <div className="w-full max-w-16 rounded-t-lg bg-orange-500" style={{ height: `${Math.max((sucursal.total / maxSucursal) * 100, 4)}%` }} title={`${sucursal.nombre}: ${formatCurrency(sucursal.total)}`} />
+                  <span className="max-w-24 truncate text-center text-[10px] text-slate-600">{sucursal.nombre}</span>
+                </div>
+              )) : periodos.length > 0 ? periodos.map((periodo) => (
+                <div key={periodo.key} className="flex h-full min-w-20 flex-1 flex-col items-center justify-end gap-1">
+                  <span className="text-[10px] font-mono text-blue-900">{formatCurrency(periodo.total)}</span>
+                  <div className="w-full max-w-16 rounded-t-lg bg-orange-500" style={{ height: `${Math.max((periodo.total / maxPeriodo) * 100, 4)}%` }} title={`${periodo.label}: ${formatCurrency(periodo.total)}`} />
+                  <span className="max-w-24 truncate text-center text-[10px] capitalize text-slate-600">{periodo.label}</span>
+                </div>
+              )) : (
+                <p className="m-auto text-sm font-medium text-slate-500">Datos insuficientes para graficar.</p>
+              )}
+            </div>
+            {hasBonusDistribution && (
+              <div className="mt-4 flex flex-wrap items-center justify-center gap-5 text-xs text-slate-600">
+                <div
+                  className="h-16 w-16 rounded-full"
+                  style={{ background: `conic-gradient(#2563eb 0 ${bodegaShare}%, #10b981 ${bodegaShare}% 100%)` }}
+                  title={`Distribución de bonos: Bodega ${formatCurrency(cascade.bonoBodega)}, Dependientes ${formatCurrency(cascade.bonoDependientes)}`}
+                />
+                <div className="flex flex-col gap-1">
+                  <span><i className="mr-1 inline-block h-2.5 w-2.5 rounded-full bg-blue-600" />Bodega {formatCurrency(cascade.bonoBodega)}</span>
+                  <span><i className="mr-1 inline-block h-2.5 w-2.5 rounded-full bg-emerald-500" />Dependientes {formatCurrency(cascade.bonoDependientes)}</span>
+                </div>
+              </div>
+            )}
           </section>
         </div>
+        <footer className="report-print-footer hidden print:flex">
+          <span>ERP FARMACIAS · Generado {generatedAt}</span>
+          <span>Página <span className="report-page-number" /></span>
+        </footer>
       </div>
       <style jsx global>{`
         @media print {
           @page {
-            size: letter portrait;
-            margin: 10mm 12mm 8mm 12mm;
+            size: A4 portrait;
+            margin: 15mm;
           }
 
           html,
@@ -258,7 +296,8 @@ export default function ReporteVentas({
           button,
           .no-print,
           .print-hidden,
-          header:not(.report-executive-header) {
+          header,
+          .no-print {
             display: none !important;
           }
 
@@ -301,139 +340,107 @@ export default function ReporteVentas({
             break-inside: avoid !important;
           }
 
-          .report-executive-header {
+          .report-scroll-area {
+            overflow: visible !important;
+            max-height: none !important;
+            scrollbar-width: none !important;
+          }
+
+          .report-scroll-area::-webkit-scrollbar {
+            display: none !important;
+          }
+
+          .report-header-block {
             display: flex !important;
-            align-items: flex-start !important;
-            justify-content: space-between !important;
-            padding: 0 0 0.4rem !important;
-            margin-bottom: 0.5rem !important;
-            border-bottom: 2px solid #f97316 !important;
-            background: transparent !important;
-            color: #0f172a !important;
-          }
-
-          .report-executive-header p:first-child {
-            color: #1e3a8a !important;
-            font-size: 20px !important;
-            line-height: 1 !important;
-          }
-
-          .report-executive-header h2 {
-            color: #0f172a !important;
-            font-size: 16px !important;
-          }
-
-          .report-executive-header p {
-            color: #475569 !important;
-            font-size: 10px !important;
-          }
-
-          .report-executive-header .text-blue-900,
-          .report-executive-header [class*="text-blue-"] {
-            color: #1e3a8a !important;
-          }
-
-          .report-executive-header .text-orange-600,
-          .report-executive-header [class*="text-orange-"] {
-            color: #f97316 !important;
-          }
-
-          .report-summary-grid {
-            display: flex !important;
-            flex-direction: row !important;
-            flex-wrap: nowrap !important;
+            align-items: center !important;
+            justify-content: center !important;
             width: 100% !important;
-            gap: 0.75rem !important;
-            margin-bottom: 0.75rem !important;
-          }
-
-          .report-kpi-panel {
-            width: 45% !important;
-            flex: 0 0 45% !important;
-            padding: 0.7rem !important;
-            background: #1e3a8a !important;
+            padding: 1rem !important;
+            margin: 0 !important;
+            border-bottom: 4px solid #f97316 !important;
+            border-radius: 0 !important;
+            background: #334155 !important;
             color: #ffffff !important;
-            -webkit-print-color-adjust: exact !important;
-            print-color-adjust: exact !important;
-            color-adjust: exact !important;
           }
 
-          .report-kpi-panel h3 {
-            margin-bottom: 0.45rem !important;
-            color: #fed7aa !important;
-            font-size: 11px !important;
+          .report-header-block h1 {
+            color: #ffffff !important;
+            font-size: 24px !important;
+            line-height: 1.1 !important;
           }
 
-          .report-kpi-panel > div {
-            gap: 0.25rem !important;
-          }
-
-          .report-kpi-panel > div > div {
-            padding-bottom: 0.2rem !important;
+          .report-header-block p {
+            color: #ffffff !important;
             font-size: 10px !important;
-            line-height: 1.15 !important;
           }
 
-          .report-kpi-panel,
-          .report-kpi-panel * {
+          .report-header-block p:last-child {
             color: #ffffff !important;
           }
 
-          .report-kpi-panel span:first-child {
-            color: #dbeafe !important;
-          }
-
-          .report-kpi-panel .text-orange-200,
-          .report-kpi-panel [class*="text-orange-"] {
-            color: #fed7aa !important;
-          }
-
-          .report-kpi-panel .text-white,
-          .report-kpi-panel [class*="text-white"] {
+          .report-header-block span,
+          .report-header-block strong {
             color: #ffffff !important;
           }
 
-          .report-chart-container {
-            width: 55% !important;
-            flex: 0 0 55% !important;
+          .report-kpi-ribbon {
+            display: grid !important;
+            grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
+            width: 100% !important;
+            gap: 0.5rem !important;
+            padding: 0.75rem !important;
+            margin: 0 !important;
+            background: #ffffff !important;
+            border-bottom: 2px solid #cbd5e1 !important;
           }
 
-          .report-header-kpis {
+          .report-kpi-ribbon > div {
+            padding: 0 !important;
             page-break-after: avoid;
             break-after: avoid;
-            margin-bottom: 0.3rem !important;
+            margin-bottom: 0 !important;
           }
 
           .report-chart-container {
             page-break-inside: avoid;
             break-inside: avoid;
-            max-height: 160px !important;
-            margin-bottom: 0 !important;
-            padding: 0.55rem !important;
-            border-color: #dbeafe !important;
+            width: 100% !important;
+            max-height: 200px !important;
+            margin: 0 !important;
+            padding: 1rem !important;
+            border-color: #e2e8f0 !important;
             background: #ffffff !important;
           }
 
-          .report-chart-container h3,
-          .report-chart-container svg {
+          .report-chart-container h3 {
             color: #1e3a8a !important;
+            margin-bottom: 0.5rem !important;
           }
 
           .report-chart {
-            height: 120px !important;
-            max-height: 120px !important;
+            height: 160px !important;
+            max-height: 160px !important;
             overflow: hidden !important;
             background: white !important;
           }
 
           .report-chart > div {
-            background: #1e3a8a !important;
+            background: #ffffff !important;
             box-shadow: none !important;
           }
 
-          .report-table-wrapper {
+          .report-chart > div > div {
+            background: #f97316 !important;
+          }
+
+          .report-chart span {
+            color: #1e3a8a !important;
+          }
+
+          .report-table-section {
             overflow: visible !important;
-            border-color: #cbd5e1 !important;
+            width: 100% !important;
+            padding: 1rem !important;
           }
 
           table {
@@ -445,9 +452,14 @@ export default function ReporteVentas({
             break-inside: avoid !important;
           }
 
+          .report-chart-container {
+            page-break-inside: avoid !important;
+            break-inside: avoid !important;
+          }
+
           thead {
             display: table-header-group !important;
-            background: #1e293b !important;
+            background: #334155 !important;
             color: #ffffff !important;
           }
 
@@ -471,7 +483,7 @@ export default function ReporteVentas({
           }
 
           th {
-            background: #1e293b !important;
+            background: #334155 !important;
             color: #ffffff !important;
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
@@ -487,6 +499,37 @@ export default function ReporteVentas({
           #report-printable-area {
             page-break-after: avoid !important;
             break-after: avoid !important;
+          }
+
+          .report-print-footer {
+            position: fixed !important;
+            right: 0 !important;
+            bottom: -10mm !important;
+            left: 0 !important;
+            justify-content: space-between !important;
+            border-top: 1px solid #cbd5e1 !important;
+            padding-top: 3px !important;
+            color: #475569 !important;
+            font-size: 9px !important;
+          }
+
+          .report-page-number::after {
+            content: counter(page);
+          }
+
+          /* Preserve vector fills when printing chart bars. */
+          * {
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+          }
+
+          .recharts-bar-rectangle path,
+          .recharts-bar-rectangles path,
+          .recharts-rectangle,
+          path.recharts-rectangle {
+            fill: #f97316 !important;
+            fill-opacity: 1 !important;
+            stroke: none !important;
           }
         }
       `}</style>
