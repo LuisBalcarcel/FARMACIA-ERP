@@ -340,6 +340,7 @@ export default function Home() {
   const [sucursalEnEdicion, setSucursalEnEdicion] = useState<Sucursal | null>(null);
   const [modalColaboradorAbierto, setModalColaboradorAbierto] = useState(false);
   const [itemAAnular, setItemAAnular] = useState<ItemAAnular | null>(null);
+  const [ventaEnEdicion, setVentaEnEdicion] = useState<Venta | null>(null);
 
   const [sucursales, setSucursales] = useState<Sucursal[]>([]);
   const [empleados, setEmpleados] = useState<Empleado[]>([]);
@@ -968,7 +969,7 @@ export default function Home() {
       .from(table)
       .update({
         anulado: true,
-        motivo_anulacion: motivo,
+        motivo_anulacion: itemAAnular.tipo === 'Venta' ? 'Anulación manual' : motivo,
         anulado_en: new Date().toISOString(),
       })
       .eq('id', itemAAnular.id);
@@ -1245,6 +1246,18 @@ export default function Home() {
                 }}
                 onAbrirRegistroVenta={() => setModalVentaAbierto(true)}
                 onVerHistorial={setSelectedFarmaciaId}
+                onEditarVenta={(venta) => {
+                  setSelectedFarmaciaId(String(venta.sucursal_id ?? ''));
+                  setVentaEnEdicion(venta);
+                  setModalVentaAbierto(true);
+                }}
+                onAnularVenta={(venta) => {
+                  setItemAAnular({
+                    id: String(venta.id),
+                    tipo: 'Venta',
+                    detalle: `${formatDate(venta.fecha_venta ?? venta.fecha_inicio_corte)} por ${formatCurrency(Number(venta.monto_bruto ?? 0))} de ${sucursales.find((sucursal) => String(sucursal.id) === String(venta.sucursal_id))?.nombre ?? 'farmacia'}`,
+                  });
+                }}
                 fechaDesde={fechaDesde}
                 fechaHasta={fechaHasta}
                 onChangeFechaDesde={(value: string) => {
@@ -1812,12 +1825,17 @@ export default function Home() {
 
       <ModalNuevaVentaDynamic
         isOpen={modalVentaAbierto}
-        onClose={() => setModalVentaAbierto(false)}
+        onClose={() => {
+          setModalVentaAbierto(false);
+          setVentaEnEdicion(null);
+        }}
         onSuccess={() => {
+          setVentaEnEdicion(null);
           void fetchData();
         }}
         sucursales={sucursales}
         empleados={empleados}
+        initialVenta={ventaEnEdicion}
       />
 
       <ModalGestionarFarmacias

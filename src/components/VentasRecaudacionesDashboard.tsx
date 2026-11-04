@@ -1,9 +1,10 @@
 'use client';
 
-import { ChevronDown, Edit3, Eye, Lock, Plus, Store } from 'lucide-react';
-import { useMemo } from 'react';
+import { BarChart3, ChevronDown, Edit3, Eye, Lock, Plus, Store, Trash2 } from 'lucide-react';
+import { useMemo, useState } from 'react';
 import type { BonusCascade } from '@/lib/contabilidad';
 import type { MoneyFilterMode, VentaCore, VentaSucursalResumen } from '@/hooks/useVentasFilter';
+import ReporteVentas from '@/components/ReporteVentas';
 
 type Sucursal = {
   id: string | number;
@@ -21,6 +22,8 @@ type VentasRecaudacionesDashboardProps = {
   onSelectFarmacia: (sucursalId: string) => void;
   onAbrirRegistroVenta: () => void;
   onVerHistorial: (sucursalId: string) => void;
+  onEditarVenta: (venta: VentaCore) => void;
+  onAnularVenta: (venta: VentaCore) => void;
   fechaDesde: string;
   fechaHasta: string;
   onChangeFechaDesde: (value: string) => void;
@@ -108,6 +111,8 @@ export default function VentasRecaudacionesDashboard({
   onSelectFarmacia,
   onAbrirRegistroVenta,
   onVerHistorial,
+  onEditarVenta,
+  onAnularVenta,
   fechaDesde,
   fechaHasta,
   onChangeFechaDesde,
@@ -123,6 +128,7 @@ export default function VentasRecaudacionesDashboard({
   cascadeGlobal,
   cascadePorSucursal,
 }: VentasRecaudacionesDashboardProps) {
+  const [reporteAbierto, setReporteAbierto] = useState(false);
   const historiaPeriodos = useMemo<HistoriaPeriodo[]>(() => {
     if (!selectedFarmaciaId) return [];
 
@@ -221,6 +227,15 @@ export default function VentasRecaudacionesDashboard({
               <Lock className="h-4 w-4" />
               {isFrozen ? 'Vista Congelada' : 'Congelar Vista'}
             </button>
+
+            <button
+              type="button"
+              onClick={() => setReporteAbierto(true)}
+              className="liquid-btn inline-flex w-full items-center justify-center gap-2 rounded-xl border border-slate-300/80 bg-white/90 px-4 py-2.5 text-sm font-medium text-slate-700 shadow-sm backdrop-blur-md transition-all hover:bg-white hover:text-slate-900 dark:border-white/10 dark:bg-white/10 dark:text-slate-100 dark:shadow-md dark:hover:bg-white/15 sm:w-auto"
+            >
+              <BarChart3 className="h-4 w-4" />
+              Generar Reporte
+            </button>
           </div>
 
           <div className="flex flex-nowrap items-center gap-1.5 overflow-x-auto py-1 no-scrollbar">
@@ -303,6 +318,17 @@ export default function VentasRecaudacionesDashboard({
           )}
         </div>
       </div>
+
+      <ReporteVentas
+        isOpen={reporteAbierto}
+        onClose={() => setReporteAbierto(false)}
+        ventas={ventasActivas}
+        sucursales={sucursales}
+        selectedFarmaciaId={selectedFarmaciaId}
+        fechaDesde={fechaDesde}
+        fechaHasta={fechaHasta}
+        cascade={cascadeGlobal}
+      />
 
       <div className="flex flex-wrap items-center gap-1.5">
         <button
@@ -490,9 +516,29 @@ export default function VentasRecaudacionesDashboard({
                         </summary>
                         <div className="mt-2 space-y-1 border-l border-slate-700 pl-3">
                           {periodo.cortes.map((venta) => (
-                            <div key={String(venta.id)} className="flex justify-between gap-4 text-xs text-slate-300">
-                              <span>{formatDate(venta.fecha_inicio_corte)}</span>
-                              <span className="font-mono text-emerald-300">{formatCurrency(Number(venta.monto_bruto ?? 0))}</span>
+                            <div key={String(venta.id)} className="flex items-center justify-between gap-4 text-xs text-slate-300">
+                              <span>{formatDate(venta.fecha_venta ?? venta.fecha_inicio_corte)}</span>
+                              <span className="ml-auto font-mono text-emerald-300">{formatCurrency(Number(venta.monto_bruto ?? 0))}</span>
+                              <div className="flex items-center gap-1">
+                                <button
+                                  type="button"
+                                  onClick={() => onEditarVenta(venta)}
+                                  className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-700 bg-slate-950/70 text-slate-300 transition hover:border-blue-400 hover:text-blue-200"
+                                  aria-label={`Editar venta del ${formatDate(venta.fecha_venta ?? venta.fecha_inicio_corte)}`}
+                                  title="Editar venta"
+                                >
+                                  <Edit3 className="h-3.5 w-3.5" />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => onAnularVenta(venta)}
+                                  className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-rose-500/30 bg-rose-500/5 text-rose-300 transition hover:border-rose-400 hover:bg-rose-500/10"
+                                  aria-label={`Anular venta del ${formatDate(venta.fecha_venta ?? venta.fecha_inicio_corte)}`}
+                                  title="Anular venta"
+                                >
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </button>
+                              </div>
                             </div>
                           ))}
                         </div>

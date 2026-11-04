@@ -33,6 +33,15 @@ type ModalNuevaVentaProps = {
   onSuccess: () => void;
   sucursales: Sucursal[];
   empleados: Empleado[];
+  initialVenta?: {
+    id: string | number;
+    sucursal_id?: string | number | null;
+    fecha_venta?: string;
+    fecha_inicio_corte?: string;
+    fecha_fin_corte?: string;
+    monto_bruto?: number;
+    notas_recaudacion?: string | null;
+  } | null;
 };
 
 const getToday = () => {
@@ -45,16 +54,25 @@ const getToday = () => {
 
 const tipoCorteOpciones = ['Corte Diario', 'Corte de 2 Días', 'Corte Semanal', 'Rango Personalizado'] as const;
 
-const buildRows = (sucursales: Sucursal[]): BatchRow[] =>
+const buildRows = (
+  sucursales: Sucursal[],
+  initialVenta?: ModalNuevaVentaProps['initialVenta'],
+): BatchRow[] =>
   sucursales.map((sucursal) => ({
     id: `row-${String(sucursal.id)}`,
     sucursalId: String(sucursal.id),
     montoEfectivo: '',
     montoTarjetaPos: '',
     montoTransferencia: '',
-    montoTotal: '',
-    notas: '',
-    selected: false,
+    montoTotal:
+      initialVenta && String(sucursal.id) === String(initialVenta.sucursal_id)
+        ? String(initialVenta.monto_bruto ?? '')
+        : '',
+    notas:
+      initialVenta && String(sucursal.id) === String(initialVenta.sucursal_id)
+        ? String(initialVenta.notas_recaudacion ?? '')
+        : '',
+    selected: Boolean(initialVenta && String(sucursal.id) === String(initialVenta.sucursal_id)),
   }));
 
 export default function ModalNuevaVenta({
@@ -62,6 +80,7 @@ export default function ModalNuevaVenta({
   onClose,
   onSuccess,
   sucursales,
+  initialVenta = null,
 }: ModalNuevaVentaProps) {
   const [tipoPeriodo, setTipoPeriodo] = useState<(typeof tipoCorteOpciones)[number]>('Corte Diario');
   const [fechaInicioCorte, setFechaInicioCorte] = useState('');
@@ -74,13 +93,19 @@ export default function ModalNuevaVenta({
     if (!isOpen) return;
 
     const today = getToday();
-    setTipoPeriodo('Corte Diario');
-    setFechaInicioCorte(today);
-    setFechaFinCorte(today);
-    setRows(buildRows(sucursales));
+    const fechaInicio = initialVenta?.fecha_inicio_corte?.slice(0, 10)
+      ?? initialVenta?.fecha_venta?.slice(0, 10)
+      ?? today;
+    const fechaFin = initialVenta?.fecha_fin_corte?.slice(0, 10)
+      ?? initialVenta?.fecha_venta?.slice(0, 10)
+      ?? today;
+    setTipoPeriodo(initialVenta ? 'Corte Diario' : 'Corte Diario');
+    setFechaInicioCorte(fechaInicio);
+    setFechaFinCorte(fechaFin);
+    setRows(buildRows(sucursales, initialVenta));
     setError('');
     setLoading(false);
-  }, [isOpen, sucursales]);
+  }, [initialVenta, isOpen, sucursales]);
 
   const selectedRows = useMemo(() => rows.filter((row) => row.selected), [rows]);
 
@@ -398,8 +423,12 @@ export default function ModalNuevaVenta({
       <div className="liquid-glass relative mx-auto max-h-[90vh] w-full max-w-5xl overflow-y-auto rounded-3xl p-6 shadow-2xl">
         <div className="flex items-center justify-between border-b border-slate-700 px-5 py-4">
           <div>
-            <p className="text-xs font-medium uppercase tracking-[0.2em] text-orange-300">Lote masivo</p>
-            <h2 className="mt-1 text-xl font-semibold text-white">Recaudación Masiva</h2>
+            <p className="text-xs font-medium uppercase tracking-[0.2em] text-orange-300">
+              {initialVenta ? 'Edición de venta' : 'Lote masivo'}
+            </p>
+            <h2 className="mt-1 text-xl font-semibold text-white">
+              {initialVenta ? 'Editar venta' : 'Recaudación Masiva'}
+            </h2>
           </div>
           <button
             type="button"
