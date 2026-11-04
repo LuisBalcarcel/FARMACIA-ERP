@@ -493,6 +493,120 @@ html.theme-light .catalog-edit-button {
   }
 }
 
+@media print {
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    color-adjust: exact !important;
+  }
+
+  body,
+  .report-container,
+  .bg-white {
+    background-color: #ffffff !important;
+    color: #0f172a !important;
+  }
+
+  label,
+  p,
+  span,
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6,
+  div {
+    color: #0f172a !important;
+  }
+
+  .bg-blue-800,
+  .bg-blue-900,
+  thead,
+  thead th,
+  [class*="bg-blue-8"],
+  [class*="bg-blue-9"] {
+    background-color: #1e3a8a !important;
+    color: #ffffff !important;
+  }
+
+  .bg-blue-800 *,
+  .bg-blue-900 *,
+  thead *,
+  [class*="bg-blue-8"] *,
+  [class*="bg-blue-9"] * {
+    color: #ffffff !important;
+  }
+
+  .text-orange-500,
+  [class*="text-orange-"] {
+    color: #ea580c !important;
+  }
+
+  .bg-blue-800 .text-orange-500,
+  .bg-blue-800 [class*="text-orange-"],
+  [class*="bg-blue-8"] [class*="text-orange-"] {
+    color: #f97316 !important;
+  }
+
+  .recharts-text,
+  .recharts-label,
+  .recharts-cartesian-axis-tick-value tspan,
+  .report-chart-container text {
+    fill: #1e293b !important;
+    color: #1e293b !important;
+  }
+}
+
+@media print {
+  .col-span-7,
+  .col-span-7 > div,
+  .report-chart-container,
+  .recharts-responsive-container,
+  .recharts-wrapper,
+  .recharts-surface {
+    background-color: #ffffff !important;
+    background: #ffffff !important;
+  }
+
+  .recharts-bar-rectangle path,
+  .recharts-bar path,
+  .recharts-area-area,
+  .recharts-pie-sector path {
+    fill: #f97316 !important;
+    stroke: none !important;
+  }
+
+  .report-chart > div > div {
+    background: #f97316 !important;
+    background-color: #f97316 !important;
+  }
+
+  .recharts-text,
+  .recharts-cartesian-axis-tick-value tspan,
+  .recharts-label,
+  .report-chart-container text,
+  .col-span-7 h2,
+  .col-span-7 h3,
+  .report-chart-container h3,
+  .report-chart-container span {
+    fill: #1e3a8a !important;
+    color: #1e3a8a !important;
+    font-weight: 600 !important;
+  }
+
+  .recharts-cartesian-grid-horizontal line,
+  .recharts-cartesian-grid-vertical line {
+    stroke: #e2e8f0 !important;
+    stroke-opacity: 0.5 !important;
+  }
+
+  .recharts-tooltip-wrapper,
+  .recharts-tooltip-cursor {
+    display: none !important;
+  }
+}
+
 html.theme-light .catalog-edit-button:hover {
   background-color: #e0e7ff !important;
 }

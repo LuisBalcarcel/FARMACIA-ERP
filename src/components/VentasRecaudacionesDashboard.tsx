@@ -209,7 +209,7 @@ export default function VentasRecaudacionesDashboard({
             <button
               type="button"
               onClick={onAbrirRegistroVenta}
-              className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-orange-500 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-orange-500/20 transition-all duration-200 ease-out hover:bg-orange-400 hover:shadow-xl active:scale-[0.98] sm:w-auto"
+              className="flex w-full items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm backdrop-blur-md transition-all duration-200 hover:bg-slate-50 hover:shadow-sm dark:border-white/10 dark:bg-white/5 dark:text-slate-200 dark:hover:border-white/20 dark:hover:bg-white/10 sm:w-auto"
             >
               <Plus className="h-4 w-4" />
               Registrar Venta
@@ -218,10 +218,10 @@ export default function VentasRecaudacionesDashboard({
             <button
               type="button"
               onClick={onToggleFreeze}
-              className={`inline-flex w-full items-center justify-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-medium transition sm:w-auto ${
+              className={`flex w-full items-center justify-center gap-2 rounded-xl border px-4 py-2 text-sm font-medium shadow-sm backdrop-blur-md transition-all duration-200 sm:w-auto ${
                 isFrozen
-                  ? 'border-amber-500/40 bg-amber-500/10 text-amber-200'
-                  : 'border-slate-700 bg-slate-950 text-slate-200 hover:border-amber-400 hover:text-white'
+                  ? 'border-amber-500/50 bg-amber-50 text-amber-700 hover:bg-amber-100 dark:border-amber-400/40 dark:bg-amber-500/10 dark:text-amber-200'
+                  : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50 hover:shadow-sm dark:border-white/10 dark:bg-white/5 dark:text-slate-200 dark:hover:border-white/20 dark:hover:bg-white/10'
               }`}
             >
               <Lock className="h-4 w-4" />
@@ -231,7 +231,7 @@ export default function VentasRecaudacionesDashboard({
             <button
               type="button"
               onClick={() => setReporteAbierto(true)}
-              className="liquid-btn inline-flex w-full items-center justify-center gap-2 rounded-xl border border-slate-300/80 bg-white/90 px-4 py-2.5 text-sm font-medium text-slate-700 shadow-sm backdrop-blur-md transition-all hover:bg-white hover:text-slate-900 dark:border-white/10 dark:bg-white/10 dark:text-slate-100 dark:shadow-md dark:hover:bg-white/15 sm:w-auto"
+              className="flex w-full items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm backdrop-blur-md transition-all duration-200 hover:bg-slate-50 hover:shadow-sm dark:border-white/10 dark:bg-white/5 dark:text-slate-200 dark:hover:border-white/20 dark:hover:bg-white/10 sm:w-auto"
             >
               <BarChart3 className="h-4 w-4" />
               Generar Reporte
@@ -250,10 +250,10 @@ export default function VentasRecaudacionesDashboard({
                 key={preset.key}
                 type="button"
                 onClick={() => onApplyDatePreset(preset.key as 'hoy' | 'semana' | 'mes' | 'anio' | 'personalizado')}
-                className={`h-9 whitespace-nowrap rounded-lg border px-3 text-xs font-semibold uppercase tracking-[0.12em] transition-all duration-150 ease-out active:scale-[0.98] ${
+                className={`flex h-9 whitespace-nowrap items-center gap-2 rounded-xl border px-4 py-2 text-xs font-medium uppercase tracking-[0.12em] backdrop-blur-md transition-all duration-200 active:scale-[0.98] ${
                   activeDatePreset === preset.key
-                    ? 'border-blue-600 bg-blue-600 text-white font-medium shadow-sm'
-                    : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-100'
+                    ? 'border-blue-600 bg-blue-600 text-white shadow-sm hover:bg-blue-700 dark:border-blue-400/60 dark:bg-blue-500/30 dark:text-blue-100'
+                    : 'border-slate-300 bg-white text-slate-700 shadow-sm hover:bg-slate-50 dark:border-white/10 dark:bg-white/5 dark:text-slate-200 dark:hover:border-white/20 dark:hover:bg-white/10'
                 }`}
               >
                 {preset.label}

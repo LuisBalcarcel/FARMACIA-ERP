@@ -435,10 +435,6 @@ export default function Home() {
           if (fechaHasta) {
             ventasQuery = ventasQuery.lte('fecha_inicio_corte', fechaHasta);
           }
-          if (selectedBranch !== 'all' && selectedBranch !== 'corporativo') {
-            ventasQuery = ventasQuery.eq('sucursal_id', selectedBranch);
-          }
-
           return ventasQuery;
         })(),
         supabase
@@ -503,7 +499,7 @@ export default function Home() {
     } finally {
       setIsLoadingData(false);
     }
-  }, [fechaDesde, fechaHasta, selectedBranch]);
+  }, [fechaDesde, fechaHasta]);
 
   useEffect(() => {
     if (!isFrozen) {
